@@ -1,16 +1,27 @@
 /**
  * Storage module — S3-compatible object storage via AWS SDK v3.
  *
- * Uses MinIO locally (docker-compose) and any S3-compatible backend in production.
- * All configuration comes exclusively from environment variables — no hardcoded credentials.
+ * Uses MinIO locally (docker-compose) and any S3-compatible backend in production
+ * (e.g. Railway Bucket).  All configuration comes exclusively from environment
+ * variables — no hardcoded credentials.
  *
  * Two buckets:
- *   isf-private-docs    — private; accessed only via short-lived signed URLs
- *   isf-public-assets   — public read; CMS cover images and campaign banners
+ *   isf-private-docs    — private; accessed only via short-lived signed URLs.
+ *   isf-public-assets   — private on Railway; images served via /media/public/* proxy.
+ *
+ * Key design decisions:
+ *   - Single S3Client singleton (getS3Client()) used everywhere.
+ *   - forcePathStyle is driven by STORAGE_FORCE_PATH_STYLE env var.
+ *     true  → MinIO path-style:        http://host:9000/bucket/key
+ *     false → virtual-hosted-style:    http://bucket.endpoint/key
+ *   - Public CMS images are NOT served directly from S3.  uploadPublicAsset()
+ *     returns a stable /media/public/{filename} URL served by the Express proxy.
+ *     This keeps Railway Bucket private while still delivering images to users.
  */
 
 import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import type { Readable } from 'node:stream';
 import { env } from '../../config/env.js';
 
 // ---------------------------------------------------------------------------
@@ -19,7 +30,12 @@ import { env } from '../../config/env.js';
 
 let _s3Client: S3Client | null = null;
 
-function getS3Client(): S3Client {
+/**
+ * Returns the shared S3Client singleton, creating it on first call.
+ * All storage operations MUST use this function — never instantiate S3Client
+ * directly in a router or service.
+ */
+export function getS3Client(): S3Client {
   if (_s3Client) return _s3Client;
 
   _s3Client = new S3Client({
@@ -29,30 +45,57 @@ function getS3Client(): S3Client {
       accessKeyId: env.STORAGE_ACCESS_KEY_ID,
       secretAccessKey: env.STORAGE_SECRET_ACCESS_KEY,
     },
-    // Required for MinIO path-style URLs (http://localhost:9000/bucket/key)
-    forcePathStyle: true,
+    // STORAGE_FORCE_PATH_STYLE=true  → MinIO/local (path-style URLs)
+    // STORAGE_FORCE_PATH_STYLE=false → Railway/production (virtual-hosted-style)
+    forcePathStyle: env.STORAGE_FORCE_PATH_STYLE,
   });
 
   return _s3Client;
 }
 
+/** Reset the singleton — used in tests to inject a fresh client per scenario. */
+export function _resetS3ClientForTests(): void {
+  _s3Client = null;
+}
+
 // ---------------------------------------------------------------------------
-// Upload a Buffer to the public assets bucket
+// Upload result type
 // ---------------------------------------------------------------------------
 
 export interface UploadResult {
-  /** Object key stored in S3/MinIO (use this in the database, not a full URL) */
+  /** Object key stored in S3/MinIO (persist this in the database, not the URL). */
   key: string;
-  /** Full public URL to access the object */
+  /**
+   * Stable URL to access the object.
+   *
+   * For public CMS images this is an ISF-origin URL:
+   *   /media/public/{filename}
+   * Never a direct S3/Railway URL — Railway Bucket is private.
+   */
+  url: string;
+  /**
+   * @deprecated Use `url` instead.  Kept for backward compatibility with
+   * callers that destructure `{ url, key }` from the upload result.
+   */
   publicUrl: string;
 }
 
+// ---------------------------------------------------------------------------
+// Public asset upload (CMS cover images, campaign banners)
+// ---------------------------------------------------------------------------
+
 /**
- * Upload a file buffer to the public assets bucket.
+ * Upload a file buffer to the public-assets bucket.
  *
- * @param key        Object key (e.g. "cms/images/abc123.jpg")
- * @param body       File contents as a Buffer
- * @param mimeType   MIME type (e.g. "image/jpeg")
+ * The returned URL is an ISF-origin proxy URL (/media/public/{filename}),
+ * NOT a direct S3 URL.  This keeps the Railway Bucket private while still
+ * allowing browser access through the Express media proxy.
+ *
+ * Key format: cms/images/{uuid}.{ext}
+ *
+ * @param key       Object key (e.g. "cms/images/abc123.jpg")
+ * @param body      File contents as a Buffer
+ * @param mimeType  MIME type (e.g. "image/jpeg")
  */
 export async function uploadPublicAsset(
   key: string,
@@ -60,27 +103,64 @@ export async function uploadPublicAsset(
   mimeType: string,
 ): Promise<UploadResult> {
   const client = getS3Client();
-  const bucket = env.STORAGE_BUCKET_PUBLIC;
 
   await client.send(
     new PutObjectCommand({
-      Bucket: bucket,
+      Bucket: env.STORAGE_BUCKET_PUBLIC,
       Key: key,
       Body: body,
       ContentType: mimeType,
-      // Public read is set at bucket level by minio-init; no per-object ACL needed
+      // No ACL — Railway Bucket does not support ACLs; access is via proxy.
     }),
   );
 
-  // Construct the public URL from the configured endpoint
-  const endpoint = env.STORAGE_ENDPOINT.replace(/\/$/, '');
-  const publicUrl = `${endpoint}/${bucket}/${key}`;
+  // Extract just the filename from the key (e.g. "abc123.jpg" from "cms/images/abc123.jpg")
+  const filename = key.split('/').pop() ?? key;
+  const proxyUrl = `/media/public/${encodeURIComponent(filename)}`;
 
-  return { key, publicUrl };
+  return { key, url: proxyUrl, publicUrl: proxyUrl };
 }
 
+// ---------------------------------------------------------------------------
+// Private asset upload (student loan payment proofs)
+// ---------------------------------------------------------------------------
+
 /**
- * Delete an object from the public assets bucket.
+ * Upload a file buffer to the private-docs bucket.
+ *
+ * Documents are NEVER publicly accessible.  Admins access them via short-lived
+ * signed URLs generated by getPrivateSignedUrl().
+ *
+ * Key format: loan-payments/{userId}/{uuid}.{ext}
+ *
+ * @param key       Object key (e.g. "loan-payments/uid123/abc.pdf")
+ * @param body      File contents as a Buffer
+ * @param mimeType  MIME type (e.g. "application/pdf")
+ */
+export async function uploadPrivateAsset(
+  key: string,
+  body: Buffer,
+  mimeType: string,
+): Promise<void> {
+  const client = getS3Client();
+
+  await client.send(
+    new PutObjectCommand({
+      Bucket: env.STORAGE_BUCKET_PRIVATE,
+      Key: key,
+      Body: body,
+      ContentType: mimeType,
+      // Intentionally no ACL — private bucket, accessed only via signed URLs.
+    }),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Delete public asset
+// ---------------------------------------------------------------------------
+
+/**
+ * Delete an object from the public-assets bucket.
  *
  * @param key  Object key to delete
  */
@@ -93,6 +173,10 @@ export async function deletePublicAsset(key: string): Promise<void> {
     }),
   );
 }
+
+// ---------------------------------------------------------------------------
+// Private signed URL (admin access to loan proofs)
+// ---------------------------------------------------------------------------
 
 /**
  * Generate a short-lived signed URL for a private document.
@@ -107,4 +191,40 @@ export async function getPrivateSignedUrl(key: string, ttlSec = 300): Promise<st
     Key: key,
   });
   return getSignedUrl(client, command, { expiresIn: ttlSec });
+}
+
+// ---------------------------------------------------------------------------
+// Media proxy stream helper (used by the /media/public router)
+// ---------------------------------------------------------------------------
+
+/**
+ * Retrieve a public asset from S3 and return its metadata + readable stream.
+ * Only objects under the `cms/images/` prefix can be served this way.
+ *
+ * Throws if the object is not found (NoSuchKey) or on network error.
+ */
+export interface StreamResult {
+  contentType: string | undefined;
+  contentLength: number | undefined;
+  etag: string | undefined;
+  body: Readable;
+}
+
+export async function getPublicAssetStream(filename: string): Promise<StreamResult> {
+  const client = getS3Client();
+  const key = `cms/images/${filename}`;
+
+  const response = await client.send(
+    new GetObjectCommand({
+      Bucket: env.STORAGE_BUCKET_PUBLIC,
+      Key: key,
+    }),
+  );
+
+  return {
+    contentType: response.ContentType,
+    contentLength: response.ContentLength,
+    etag: response.ETag,
+    body: response.Body as Readable,
+  };
 }

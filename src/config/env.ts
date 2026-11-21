@@ -47,6 +47,14 @@ const envSchema = z.object({
   STORAGE_SECRET_ACCESS_KEY: z.string().min(1).default('isf_minio_password'), // dev-only default
   STORAGE_BUCKET_PRIVATE: z.string().min(1).default('isf-private-docs'),
   STORAGE_BUCKET_PUBLIC: z.string().min(1).default('isf-public-assets'),
+  // forcePathStyle: true  → MinIO / local dev (path-style: http://host/bucket/key)
+  // forcePathStyle: false → Railway / production (virtual-hosted: http://bucket.host/key)
+  // NOTE: z.coerce.boolean() must NOT be used — it converts the string "false" to true.
+  //       We use an explicit string transform instead.
+  STORAGE_FORCE_PATH_STYLE: z
+    .string()
+    .transform((v) => v.trim().toLowerCase() !== 'false')
+    .default('true'),
 
   // Payment
   PAYMENT_PROVIDER: z.enum(['mock', 'midtrans', 'xendit']).default('mock'),

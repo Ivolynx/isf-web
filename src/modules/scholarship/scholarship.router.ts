@@ -37,8 +37,7 @@ import { isRole } from '../../shared/rbac.js';
 import type { Role } from '../../shared/rbac.js';
 import { ForbiddenError, BadRequestError } from '../../shared/errors.js';
 import * as scholarshipService from './scholarship.service.js';
-import { getPrivateSignedUrl, uploadPublicAsset } from '../storage/index.js';
-import { env } from '../../config/index.js';
+import { uploadPrivateAsset } from '../storage/index.js';
 import { v4 as uuidv4 } from 'uuid';
 import multer from 'multer';
 
@@ -375,29 +374,12 @@ scholarshipRouter.post(
         return;
       }
 
-      // Upload proof to private bucket
+      // Upload proof to private bucket using the shared storage singleton.
+      // Key format: loan-payments/{userId}/{uuid}.{ext}
       const ext = req.file.originalname.split('.').pop() ?? 'bin';
       const key = `loan-payments/${userId}/${uuidv4()}.${ext}`;
-      const bucket = env.STORAGE_BUCKET_PRIVATE;
 
-      // Upload to private bucket using S3 client directly
-      const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
-      const s3 = new S3Client({
-        endpoint: env.STORAGE_ENDPOINT,
-        region: env.STORAGE_REGION,
-        credentials: {
-          accessKeyId: env.STORAGE_ACCESS_KEY_ID,
-          secretAccessKey: env.STORAGE_SECRET_ACCESS_KEY,
-        },
-        forcePathStyle: true,
-      });
-
-      await s3.send(new PutObjectCommand({
-        Bucket: bucket,
-        Key: key,
-        Body: req.file.buffer,
-        ContentType: req.file.mimetype,
-      }));
+      await uploadPrivateAsset(key, req.file.buffer, req.file.mimetype);
 
       const submission = await scholarshipService.submitPayment(
         {
@@ -573,7 +555,3 @@ scholarshipRouter.post(
     }
   },
 );
-
-// Suppress unused import warning
-void uploadPublicAsset;
-void getPrivateSignedUrl;

@@ -30,6 +30,7 @@ import { portalRouter } from '../modules/portal/portal.router.js';
 import { adminRouter } from '../modules/admin/admin.router.js';
 import { ownerRouter } from '../modules/owner/owner.router.js';
 import { cmsApiRouter, cmsPagesRouter, blogRouter, cmsUploadRouter } from '../modules/cms/index.js';
+import { mediaRouter } from '../modules/storage/media.router.js';
 import { homeRouter } from '../modules/home/home.router.js';
 import {
   fundraisingApiRouter,
@@ -94,12 +95,13 @@ export function createApp(): Express {
           ],
           fontSrc: ["'self'", 'https://fonts.gstatic.com'],
           imgSrc: [
+            // 'self' covers /media/public/* proxy — the primary image delivery path.
             "'self'",
             'data:',
             'blob:',
             'https://images.unsplash.com',
-            // MinIO/S3 image assets — allow the configured storage endpoint
-            // In dev this is http://localhost:9000; in prod override with CDN/S3 URL
+            // Keep storage endpoint allowed for direct MinIO access in local dev
+            // (e.g. admin-only signed URLs rendered in <img> tags).
             env.STORAGE_ENDPOINT,
           ],
           connectSrc: ["'self'"],
@@ -298,6 +300,10 @@ export function createApp(): Express {
 
   // CMS image upload — multipart, authenticated, CSRF-protected
   app.use('/api/v1/cms', csrfProtection, cmsUploadRouter);
+
+  // Public media proxy — streams CMS images from S3/Railway Bucket.
+  // No CSRF needed (read-only, no session required).
+  app.use('/media', mediaRouter);
 
   // Blog — public, no CSRF needed (read-only)
   app.use('/blog', blogRouter);

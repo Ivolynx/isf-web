@@ -157,8 +157,9 @@ cmsUploadRouter.post(
           'CMS image uploaded',
         );
 
-        // Return only the public URL and key — never credentials
-        res.status(201).json({ url: result.publicUrl, key: result.key });
+        // Return the ISF-origin proxy URL and key — never S3 credentials or direct S3 URLs.
+        // The url field is /media/public/{filename}, served by the Express media proxy.
+        res.status(201).json({ url: result.url, key: result.key });
       } catch (storageErr) {
         // Surface a clear 503 when object storage is not reachable,
         // rather than a generic 500, so callers can show a meaningful message.
