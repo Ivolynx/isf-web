@@ -1,40 +1,14 @@
-{% extends "layouts/base.njk" %}
+{% extends "layouts/admin.njk" %}
 
 {% block title %}Invitations — ISF Owner{% endblock %}
 
+{% block breadcrumb %}
+<a href="/owner">Owner Dashboard</a>
+<span class="admin-breadcrumb__sep">›</span>
+<span class="admin-breadcrumb__current">Invitations</span>
+{% endblock %}
+
 {% block body %}
-<div class="portal-page">
-  <header class="portal-header">
-    <a class="brand" href="/" aria-label="Intelligentsia Scholarship Fund home">
-      <span class="brand__mark" aria-hidden="true">I</span>
-      <span>
-        <span class="brand__name">ISF</span>
-        <span class="brand__sub">Intelegensia</span>
-      </span>
-    </a>
-
-    <div class="portal-header__actions">
-      <div class="portal-user">
-        <span class="portal-user__name">{{ displayName or userEmail }}</span>
-        <span class="portal-user__role" style="background:rgba(242,193,78,0.2);color:#F2C14E;border-color:rgba(242,193,78,0.5);">OWNER</span>
-      </div>
-      <form class="logout-form" method="POST" action="/auth/logout">
-        <input type="hidden" name="_csrf" value="{{ csrfToken }}">
-        <button class="btn btn--ghost btn--sm" type="submit">Sign out</button>
-      </form>
-    </div>
-  </header>
-
-  <nav class="portal-nav" aria-label="Owner navigation">
-    <ul class="portal-nav__list">
-      <li><a href="/owner">Owner Dashboard</a></li>
-      <li><a href="/owner/users">User Management</a></li>
-      <li><a href="/owner/invitations" class="is-active" aria-current="page">Invitations</a></li>
-      <li><a href="/admin">Admin</a></li>
-    </ul>
-  </nav>
-
-  <main class="portal-main" id="main-content">
     <h1 class="portal-main__heading">Invitations</h1>
     <p class="portal-main__lead">Send and manage user invitations.</p>
 
@@ -134,10 +108,4 @@
         </div>
       {% endif %}
     </section>
-  </main>
-
-  <footer class="auth-footer">
-    &copy; {{ year }} Intelligentsia Scholarship Fund. All rights reserved.
-  </footer>
-</div>
 {% endblock %}

@@ -1,0 +1,512 @@
+{% extends "layouts/base.njk" %}
+
+{% block title %}Simulasi Pembayaran — ISF{% endblock %}
+
+{% block head %}
+<style>
+/* ── Mock Pay Page ── */
+.mock-pay-pg {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--navy-900);
+}
+.mock-pay-header {
+  background: var(--navy-800);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  padding: 1rem 0;
+}
+.mock-pay-header .inner {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.mock-pay-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  color: var(--cream-100);
+  text-decoration: none;
+}
+.mock-pay-brand-mark {
+  width: 2rem; height: 2rem;
+  border: 1.5px solid var(--gold-500);
+  border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--cream-100);
+}
+.mock-pay-secure {
+  font-size: 0.75rem;
+  color: var(--cream-400);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.mock-pay-main {
+  flex: 1;
+  padding: 2.5rem 0 4rem;
+}
+.mock-pay-inner {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+  display: grid;
+  gap: 2rem;
+}
+@media (min-width: 56em) {
+  .mock-pay-inner { grid-template-columns: 1.4fr 1fr; align-items: start; }
+}
+
+/* SIM banner */
+.sim-banner {
+  background: rgba(255,158,32,0.1);
+  border: 1.5px solid rgba(255,158,32,0.35);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.75rem;
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+.sim-banner__icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 0.05rem; }
+.sim-banner__text { font-size: 0.85rem; color: var(--gold-300); line-height: 1.55; }
+.sim-banner__text strong { color: var(--gold-300); display: block; margin-bottom: 0.25rem; font-size: 0.88rem; }
+
+/* Payment method selection */
+.method-section h2 {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 500;
+  color: var(--cream-100);
+  margin-bottom: 1.25rem;
+}
+.method-group {
+  margin-bottom: 1.25rem;
+}
+.method-group__label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cream-400);
+  margin-bottom: 0.65rem;
+}
+.method-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.method-option {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.875rem 1rem;
+  background: rgba(255,255,255,0.04);
+  border: 1.5px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.method-option:hover {
+  border-color: rgba(255,158,32,0.45);
+  background: rgba(255,158,32,0.05);
+}
+.method-option.is-selected {
+  border-color: var(--gold-500);
+  background: rgba(255,158,32,0.1);
+}
+.method-option input[type="radio"] {
+  width: 1rem; height: 1rem;
+  accent-color: var(--gold-500);
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+  /* reset global select rules */
+  display: inline-block;
+  background: none;
+  border: none;
+  appearance: auto;
+  -webkit-appearance: auto;
+}
+.method-option__icon {
+  width: 2.25rem; height: 1.5rem;
+  background: rgba(255,255,255,0.08);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--cream-100);
+  letter-spacing: 0.01em;
+  flex-shrink: 0;
+}
+.method-option__name {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--cream-100);
+  flex: 1;
+}
+.method-option__sim {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold-300);
+  background: rgba(255,158,32,0.1);
+  border: 1px solid rgba(255,158,32,0.25);
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+}
+
+/* Sim instruction area */
+.sim-instruction {
+  display: none;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  margin-top: 1.5rem;
+  font-size: 0.88rem;
+  color: var(--cream-400);
+  line-height: 1.6;
+}
+.sim-instruction.is-visible { display: block; }
+.sim-qr {
+  width: 9rem; height: 9rem;
+  background: var(--isf-white);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 1rem auto;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--navy-900);
+  text-align: center;
+  border: 3px solid var(--gold-500);
+  padding: 0.5rem;
+  line-height: 1.3;
+}
+
+/* Summary card */
+.pay-summary-card {
+  background: var(--navy-800);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  position: sticky;
+  top: 1.5rem;
+}
+.pay-summary-card h3 {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--cream-100);
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.pay-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0.5rem 0;
+  font-size: 0.88rem;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.pay-summary-row:last-of-type { border-bottom: 0; }
+.pay-summary-row dt { color: var(--cream-400); }
+.pay-summary-row dd { font-weight: 600; color: var(--cream-100); text-align: right; max-width: 60%; word-break: break-all; }
+.pay-summary-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 1rem 0 0.5rem;
+  margin-top: 0.75rem;
+  border-top: 1.5px solid rgba(255,255,255,0.1);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--cream-100);
+}
+.pay-summary-total span:last-child { color: var(--gold-500); font-family: var(--font-display); font-size: 1.35rem; }
+
+.pay-action-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+.mock-result {
+  display: none;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-sm);
+  margin-top: 1rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+.mock-result--ok { background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.3); color: #6ee7b7; }
+.mock-result--err { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); color: #fca5a5; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="mock-pay-pg">
+  <!-- Header -->
+  <div class="mock-pay-header">
+    <div class="inner">
+      <a href="/" class="mock-pay-brand">
+        <span class="mock-pay-brand-mark">I</span>
+        <span>ISF — Pembayaran</span>
+      </a>
+      <span class="mock-pay-secure">
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
+        Halaman Aman — Simulasi
+      </span>
+    </div>
+  </div>
+
+  <main id="main-content" class="mock-pay-main">
+    <div class="mock-pay-inner">
+
+      <!-- Left: payment method + simulation -->
+      <div class="method-section">
+        <div class="sim-banner">
+          <span class="sim-banner__icon">⚠</span>
+          <div class="sim-banner__text">
+            <strong>MODE SIMULASI — TIDAK ADA UANG NYATA</strong>
+            Halaman ini adalah simulasi alur pembayaran untuk pengembangan. Tidak ada transaksi uang yang diproses. Tidak ada koneksi ke gateway pembayaran nyata.
+          </div>
+        </div>
+
+        <h2>Pilih Metode Pembayaran</h2>
+
+        <!-- QRIS -->
+        <div class="method-group">
+          <p class="method-group__label">QRIS</p>
+          <div class="method-list">
+            <label class="method-option">
+              <input type="radio" name="paymentMethod" value="qris">
+              <span class="method-option__icon">QR</span>
+              <span class="method-option__name">QRIS (Semua Dompet)</span>
+              <span class="method-option__sim">Simulasi</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- E-Wallet -->
+        <div class="method-group">
+          <p class="method-group__label">Dompet Digital</p>
+          <div class="method-list">
+            <label class="method-option">
+              <input type="radio" name="paymentMethod" value="dana">
+              <span class="method-option__icon">DANA</span>
+              <span class="method-option__name">DANA</span>
+              <span class="method-option__sim">Simulasi</span>
+            </label>
+            <label class="method-option">
+              <input type="radio" name="paymentMethod" value="ovo">
+              <span class="method-option__icon">OVO</span>
+              <span class="method-option__name">OVO</span>
+              <span class="method-option__sim">Simulasi</span>
+            </label>
+            <label class="method-option">
+              <input type="radio" name="paymentMethod" value="gopay">
+              <span class="method-option__icon">GO</span>
+              <span class="method-option__name">GoPay</span>
+              <span class="method-option__sim">Simulasi</span>
+            </label>
+            <label class="method-option">
+              <input type="radio" name="paymentMethod" value="shopeepay">
+              <span class="method-option__icon">SP</span>
+              <span class="method-option__name">ShopeePay</span>
+              <span class="method-option__sim">Simulasi</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Bank Transfer -->
+        <div class="method-group">
+          <p class="method-group__label">Transfer Bank / Virtual Account</p>
+          <div class="method-list">
+            <label class="method-option">
+              <input type="radio" name="paymentMethod" value="bca">
+              <span class="method-option__icon">BCA</span>
+              <span class="method-option__name">BCA Virtual Account</span>
+              <span class="method-option__sim">Simulasi</span>
+            </label>
+            <label class="method-option">
+              <input type="radio" name="paymentMethod" value="bri">
+              <span class="method-option__icon">BRI</span>
+              <span class="method-option__name">BRI Virtual Account</span>
+              <span class="method-option__sim">Simulasi</span>
+            </label>
+            <label class="method-option">
+              <input type="radio" name="paymentMethod" value="bni">
+              <span class="method-option__icon">BNI</span>
+              <span class="method-option__name">BNI Virtual Account</span>
+              <span class="method-option__sim">Simulasi</span>
+            </label>
+            <label class="method-option">
+              <input type="radio" name="paymentMethod" value="mandiri">
+              <span class="method-option__icon">MDR</span>
+              <span class="method-option__name">Mandiri Virtual Account</span>
+              <span class="method-option__sim">Simulasi</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Simulation instruction area -->
+        <div class="sim-instruction" id="simInstruction">
+          <div id="simInstructionContent"></div>
+        </div>
+      </div>
+
+      <!-- Right: summary card -->
+      <div>
+        <div class="pay-summary-card">
+          <h3>Ringkasan Donasi</h3>
+          <dl>
+            <div class="pay-summary-row">
+              <dt>ID Donasi</dt>
+              <dd style="font-size:0.78rem;">{{ donationId | escape if donationId else '—' }}</dd>
+            </div>
+            <div class="pay-summary-row">
+              <dt>Referensi</dt>
+              <dd style="font-size:0.78rem;word-break:break-all;">MOCK-{{ txRef | escape if txRef else '—' }}</dd>
+            </div>
+            <div class="pay-summary-row">
+              <dt>Mata Uang</dt>
+              <dd>{{ currency | escape if currency else 'IDR' }}</dd>
+            </div>
+          </dl>
+          <div class="pay-summary-total">
+            <span>Total</span>
+            <span>Rp {{ amount | int if amount else '0' }}</span>
+          </div>
+
+          <div id="mockResult" class="mock-result" role="alert"></div>
+
+          <div class="pay-action-btns">
+            <button id="btnPaid" class="btn btn--primary btn--full" disabled>
+              Simulasikan Pembayaran Berhasil
+            </button>
+            <button id="btnFailed" class="btn btn--secondary btn--full" disabled>
+              Simulasikan Pembayaran Gagal
+            </button>
+            <a href="/fundraising" class="btn btn--ghost btn--full" style="text-align:center;">
+              Batalkan &amp; Kembali
+            </a>
+          </div>
+
+          <p style="margin-top:1rem;font-size:0.72rem;color:var(--cream-400);text-align:center;line-height:1.5;">
+            Pilih metode pembayaran untuk mengaktifkan tombol simulasi. Tidak ada uang nyata yang berpindah tangan.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+(function() {
+  var txRef      = '{{ txRef | escape }}';
+  var donId      = '{{ donationId | escape }}';
+  var successUrl = '{{ successUrl | escape }}';
+  var csrfToken  = '{{ csrfToken | escape }}';
+  var amountDisp = '{{ amount | escape }}';
+
+  var btnPaid   = document.getElementById('btnPaid');
+  var btnFailed = document.getElementById('btnFailed');
+  var result    = document.getElementById('mockResult');
+  var simInst   = document.getElementById('simInstruction');
+  var simContent= document.getElementById('simInstructionContent');
+
+  // Payment method selection
+  var methodRadios = document.querySelectorAll('input[name="paymentMethod"]');
+  var instructions = {
+    qris: '<div style="text-align:center;"><p><strong style="color:var(--cream-100);">QRIS Simulasi</strong></p><div class="sim-qr">SIMULASI<br>QRIS<br>— ISF —<br><small>BUKAN QR SUNGGUHAN</small></div><p>Ini adalah placeholder QR. Tidak dapat dipindai untuk melakukan pembayaran nyata.</p></div>',
+    dana: '<p><strong style="color:var(--cream-100);">DANA — Instruksi Simulasi</strong></p><ol style="padding-left:1.25rem;margin:0.5rem 0 0;line-height:2;"><li>Buka aplikasi DANA (simulasi)</li><li>Pilih "Bayar" atau "Scan"</li><li>Masukkan nomor simulasi: <code style="background:rgba(255,255,255,0.08);padding:0.1rem 0.4rem;border-radius:4px;">SIMULASI-DANA</code></li><li>Jumlah: Rp ' + parseInt(amountDisp).toLocaleString("id-ID") + '</li></ol><p style="margin-top:0.75rem;color:#FFBE6A;font-size:0.8rem;">⚠ Ini hanya demonstrasi. Tidak mengarahkan ke aplikasi DANA sungguhan.</p>',
+    ovo: '<p><strong style="color:var(--cream-100);">OVO — Instruksi Simulasi</strong></p><ol style="padding-left:1.25rem;margin:0.5rem 0 0;line-height:2;"><li>Buka aplikasi OVO (simulasi)</li><li>Masukkan nomor HP simulasi</li><li>Konfirmasi notifikasi (simulasi)</li><li>Jumlah: Rp ' + parseInt(amountDisp).toLocaleString("id-ID") + '</li></ol><p style="margin-top:0.75rem;color:#FFBE6A;font-size:0.8rem;">⚠ Ini hanya demonstrasi. Tidak mengarahkan ke aplikasi OVO sungguhan.</p>',
+    gopay: '<p><strong style="color:var(--cream-100);">GoPay — Instruksi Simulasi</strong></p><ol style="padding-left:1.25rem;margin:0.5rem 0 0;line-height:2;"><li>Buka Gojek (simulasi)</li><li>Pilih GoPay</li><li>Konfirmasi pembayaran (simulasi)</li><li>Jumlah: Rp ' + parseInt(amountDisp).toLocaleString("id-ID") + '</li></ol><p style="margin-top:0.75rem;color:#FFBE6A;font-size:0.8rem;">⚠ Ini hanya demonstrasi. Tidak mengarahkan ke aplikasi GoPay sungguhan.</p>',
+    shopeepay: '<p><strong style="color:var(--cream-100);">ShopeePay — Instruksi Simulasi</strong></p><ol style="padding-left:1.25rem;margin:0.5rem 0 0;line-height:2;"><li>Buka Shopee (simulasi)</li><li>Pilih ShopeePay</li><li>Jumlah: Rp ' + parseInt(amountDisp).toLocaleString("id-ID") + '</li></ol><p style="margin-top:0.75rem;color:#FFBE6A;font-size:0.8rem;">⚠ Ini hanya demonstrasi.</p>',
+    bca: '<p><strong style="color:var(--cream-100);">BCA Virtual Account — Instruksi Simulasi</strong></p><p style="color:#FFBE6A;margin-bottom:0.75rem;">⚠ Nomor di bawah adalah SIMULASI — bukan VA nyata ISF.</p><table style="width:100%;font-size:0.85rem;"><tr><td style="color:var(--cream-400);padding:0.35rem 0;">Kode Bank</td><td style="font-weight:600;">014 (SIMULASI)</td></tr><tr><td style="color:var(--cream-400);padding:0.35rem 0;">No. VA Simulasi</td><td style="font-weight:600;font-family:monospace;">8080-XXXX-SIM</td></tr><tr><td style="color:var(--cream-400);padding:0.35rem 0;">Jumlah</td><td style="font-weight:600;">Rp ' + parseInt(amountDisp).toLocaleString("id-ID") + '</td></tr></table>',
+    bri: '<p><strong style="color:var(--cream-100);">BRI Virtual Account — Instruksi Simulasi</strong></p><p style="color:#FFBE6A;margin-bottom:0.75rem;">⚠ Nomor di bawah adalah SIMULASI — bukan VA nyata ISF.</p><table style="width:100%;font-size:0.85rem;"><tr><td style="color:var(--cream-400);padding:0.35rem 0;">Kode Bank</td><td style="font-weight:600;">002 (SIMULASI)</td></tr><tr><td style="color:var(--cream-400);padding:0.35rem 0;">No. VA Simulasi</td><td style="font-weight:600;font-family:monospace;">8833-XXXX-SIM</td></tr><tr><td style="color:var(--cream-400);padding:0.35rem 0;">Jumlah</td><td style="font-weight:600;">Rp ' + parseInt(amountDisp).toLocaleString("id-ID") + '</td></tr></table>',
+    bni: '<p><strong style="color:var(--cream-100);">BNI Virtual Account — Instruksi Simulasi</strong></p><p style="color:#FFBE6A;margin-bottom:0.75rem;">⚠ Nomor di bawah adalah SIMULASI — bukan VA nyata ISF.</p><table style="width:100%;font-size:0.85rem;"><tr><td style="color:var(--cream-400);padding:0.35rem 0;">Kode Bank</td><td style="font-weight:600;">009 (SIMULASI)</td></tr><tr><td style="color:var(--cream-400);padding:0.35rem 0;">No. VA Simulasi</td><td style="font-weight:600;font-family:monospace;">8889-XXXX-SIM</td></tr><tr><td style="color:var(--cream-400);padding:0.35rem 0;">Jumlah</td><td style="font-weight:600;">Rp ' + parseInt(amountDisp).toLocaleString("id-ID") + '</td></tr></table>',
+    mandiri: '<p><strong style="color:var(--cream-100);">Mandiri Virtual Account — Instruksi Simulasi</strong></p><p style="color:#FFBE6A;margin-bottom:0.75rem;">⚠ Nomor di bawah adalah SIMULASI — bukan VA nyata ISF.</p><table style="width:100%;font-size:0.85rem;"><tr><td style="color:var(--cream-400);padding:0.35rem 0;">Kode Bank</td><td style="font-weight:600;">008 (SIMULASI)</td></tr><tr><td style="color:var(--cream-400);padding:0.35rem 0;">No. VA Simulasi</td><td style="font-weight:600;font-family:monospace;">7070-XXXX-SIM</td></tr><tr><td style="color:var(--cream-400);padding:0.35rem 0;">Jumlah</td><td style="font-weight:600;">Rp ' + parseInt(amountDisp).toLocaleString("id-ID") + '</td></tr></table>'
+  };
+
+  methodRadios.forEach(function(radio) {
+    radio.addEventListener('change', function() {
+      // Update option styling
+      document.querySelectorAll('.method-option').forEach(function(opt) { opt.classList.remove('is-selected'); });
+      this.closest('.method-option').classList.add('is-selected');
+
+      // Show instruction
+      var key = this.value;
+      if (instructions[key]) {
+        simContent.innerHTML = instructions[key];
+        simInst.classList.add('is-visible');
+      }
+
+      // Enable buttons
+      btnPaid.disabled = false;
+      btnFailed.disabled = false;
+    });
+  });
+
+  function setLoading(loading) {
+    btnPaid.disabled = loading;
+    btnFailed.disabled = loading;
+    btnPaid.textContent = loading ? 'Memproses...' : 'Simulasikan Pembayaran Berhasil';
+    btnFailed.textContent = loading ? 'Memproses...' : 'Simulasikan Pembayaran Gagal';
+  }
+
+  function showResult(type, msg) {
+    result.className = 'mock-result mock-result--' + type;
+    result.textContent = msg;
+    result.style.display = 'block';
+  }
+
+  async function simulatePayment(status) {
+    setLoading(true);
+    result.style.display = 'none';
+
+    try {
+      var res = await fetch('/fundraising/mock-pay/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+        body: JSON.stringify({ txRef: txRef, donationId: donId, status: status })
+      });
+      var data = await res.json();
+      if (!res.ok) {
+        showResult('err', 'Gagal: ' + (data.error || 'Kesalahan server'));
+        setLoading(false);
+        return;
+      }
+      showResult('ok', status === 'paid' ? '✓ Pembayaran disimulasikan berhasil. Mengalihkan...' : '✕ Pembayaran disimulasikan gagal. Mengalihkan...');
+      var redirect = successUrl
+        ? successUrl + (successUrl.indexOf('?') >= 0 ? '&' : '?') + 'donation_id=' + encodeURIComponent(donId) + '&status=' + status
+        : '/fundraising/donate/result?donation_id=' + encodeURIComponent(donId) + '&status=' + status;
+      setTimeout(function() { window.location.href = redirect; }, 1500);
+    } catch (err) {
+      showResult('err', 'Terjadi kesalahan jaringan.');
+      setLoading(false);
+    }
+  }
+
+  btnPaid.addEventListener('click', function() { simulatePayment('paid'); });
+  btnFailed.addEventListener('click', function() { simulatePayment('failed'); });
+})();
+</script>
+{% endblock %}

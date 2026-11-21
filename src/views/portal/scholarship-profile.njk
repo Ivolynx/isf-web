@@ -1,0 +1,275 @@
+{% extends "layouts/portal.njk" %}
+
+{% block title %}Profil Mahasiswa — ISF Member Portal{% endblock %}
+
+{% block breadcrumb %}
+  <a href="/portal" class="portal-topbar__breadcrumb a">Member Portal</a>
+  <span class="portal-topbar__breadcrumb__sep" aria-hidden="true">›</span>
+  <span class="portal-topbar__breadcrumb__current">Profil Mahasiswa</span>
+{% endblock %}
+
+{% block body %}
+
+<div class="portal-page-header">
+  <div>
+    <h1 class="portal-page-title">Profil Mahasiswa</h1>
+    <p class="portal-page-lead">Lengkapi data akademik untuk mengajukan beasiswa atau pembiayaan pendidikan.</p>
+  </div>
+</div>
+
+{# DB error #}
+{% if dbError %}
+<div class="p-alert p-alert--warning" role="alert">
+  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true" flex-shrink="0"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
+  <div><strong>Perhatian:</strong> {{ dbError }}</div>
+</div>
+{% endif %}
+
+{# Verification status strip #}
+{% if profile %}
+<div class="p-profile-status" role="status">
+  <div>
+    <div class="p-profile-status__label">Status Verifikasi</div>
+    <div style="margin-top:0.25rem;">
+      <span class="p-badge p-badge--{{ profile.verificationStatus | lower | replace('_', '-') }}">
+        {{ profile.verificationStatus | replace('_', ' ') }}
+      </span>
+    </div>
+  </div>
+  {% if profile.verificationNotes %}
+  <div class="p-profile-status__notes">
+    <div class="p-profile-status__label">Catatan Admin</div>
+    <div class="p-profile-status__value">{{ profile.verificationNotes }}</div>
+  </div>
+  {% endif %}
+  {% if profile.verificationStatus === 'INCOMPLETE' or profile.verificationStatus === 'CHANGES_REQUESTED' %}
+  <button type="button" id="btnSubmitForVerification" class="p-btn p-btn--primary p-btn--sm" style="margin-left:auto;" aria-label="Ajukan profil untuk diverifikasi admin">
+    Ajukan Verifikasi
+  </button>
+  {% endif %}
+</div>
+{% endif %}
+
+<form id="profileForm" novalidate>
+  <input type="hidden" name="_csrf" value="{{ csrfToken }}">
+
+  {# ── Section 1: Identitas Diri ── #}
+  <div class="p-section">
+    <h2 class="p-section__title">Identitas Diri</h2>
+    <div class="p-form-grid">
+
+      <div class="p-form-group p-full-span">
+        <label class="p-label" for="fullName">
+          Nama Lengkap <span class="req" aria-label="wajib diisi">*</span>
+        </label>
+        <input type="text" id="fullName" name="fullName" class="p-input"
+               value="{{ profile.fullName if profile else '' }}"
+               required maxlength="200"
+               placeholder="Masukkan nama lengkap sesuai KTP"
+               autocomplete="name">
+      </div>
+
+      <div class="p-form-group">
+        <label class="p-label" for="phoneNumber">Nomor Telepon</label>
+        <input type="tel" id="phoneNumber" name="phoneNumber" class="p-input"
+               value="{{ profile.phoneNumber if profile else '' }}"
+               maxlength="30"
+               placeholder="Contoh: 08123456789"
+               autocomplete="tel">
+      </div>
+
+      <div class="p-form-group">
+        <label class="p-label" for="dateOfBirth">Tanggal Lahir</label>
+        <input type="date" id="dateOfBirth" name="dateOfBirth" class="p-input"
+               value="{{ profile.dateOfBirth if profile else '' }}"
+               autocomplete="bday">
+      </div>
+
+      <div class="p-form-group p-full-span">
+        <label class="p-label" for="address">Alamat</label>
+        <textarea id="address" name="address" class="p-textarea" rows="2"
+                  maxlength="500"
+                  placeholder="Alamat lengkap tempat tinggal saat ini"
+                  autocomplete="street-address">{{ profile.address if profile else '' }}</textarea>
+      </div>
+
+      <div class="p-form-group">
+        <label class="p-label" for="city">Kota</label>
+        <input type="text" id="city" name="city" class="p-input"
+               value="{{ profile.city if profile else '' }}"
+               maxlength="100"
+               placeholder="Nama kota"
+               autocomplete="address-level2">
+      </div>
+
+      <div class="p-form-group">
+        <label class="p-label" for="province">Provinsi</label>
+        <input type="text" id="province" name="province" class="p-input"
+               value="{{ profile.province if profile else '' }}"
+               maxlength="100"
+               placeholder="Nama provinsi"
+               autocomplete="address-level1">
+      </div>
+
+    </div>
+  </div>
+
+  {# ── Section 2: Informasi Akademik ── #}
+  <div class="p-section">
+    <h2 class="p-section__title">Informasi Akademik</h2>
+    <div class="p-form-grid">
+
+      <div class="p-form-group p-full-span">
+        <label class="p-label" for="universityName">Nama Perguruan Tinggi</label>
+        <input type="text" id="universityName" name="universityName" class="p-input"
+               value="{{ profile.universityName if profile else '' }}"
+               maxlength="300"
+               placeholder="Nama universitas atau institut">
+      </div>
+
+      <div class="p-form-group">
+        <label class="p-label" for="faculty">Fakultas</label>
+        <input type="text" id="faculty" name="faculty" class="p-input"
+               value="{{ profile.faculty if profile else '' }}"
+               maxlength="200"
+               placeholder="Nama fakultas">
+      </div>
+
+      <div class="p-form-group">
+        <label class="p-label" for="studyProgram">Program Studi</label>
+        <input type="text" id="studyProgram" name="studyProgram" class="p-input"
+               value="{{ profile.studyProgram if profile else '' }}"
+               maxlength="200"
+               placeholder="Nama program studi">
+      </div>
+
+      <div class="p-form-group">
+        <label class="p-label" for="degreeLevel">Jenjang Pendidikan</label>
+        <select id="degreeLevel" name="degreeLevel" class="p-select">
+          <option value="">— Pilih Jenjang —</option>
+          {% for level in ['D3','D4','S1','S2','S3','Profesi'] %}
+          <option value="{{ level }}" {{ 'selected' if profile and profile.degreeLevel === level else '' }}>{{ level }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="p-form-group">
+        <label class="p-label" for="studentStatus">Status Mahasiswa</label>
+        <select id="studentStatus" name="studentStatus" class="p-select">
+          <option value="ACTIVE" {{ 'selected' if not profile or profile.studentStatus === 'ACTIVE' else '' }}>Aktif</option>
+          <option value="INACTIVE" {{ 'selected' if profile and profile.studentStatus === 'INACTIVE' else '' }}>Tidak Aktif</option>
+          <option value="GRADUATED" {{ 'selected' if profile and profile.studentStatus === 'GRADUATED' else '' }}>Lulus</option>
+          <option value="DROPPED" {{ 'selected' if profile and profile.studentStatus === 'DROPPED' else '' }}>Drop Out</option>
+        </select>
+      </div>
+
+      <div class="p-form-group">
+        <label class="p-label" for="studentIdNumber">NIM (Nomor Induk Mahasiswa)</label>
+        <input type="text" id="studentIdNumber" name="studentIdNumber" class="p-input"
+               value="{{ profile.studentIdNumber if profile else '' }}"
+               maxlength="50"
+               placeholder="Nomor NIM Anda">
+      </div>
+
+      <div class="p-form-group">
+        <label class="p-label" for="enrollmentYear">Tahun Masuk</label>
+        <input type="number" id="enrollmentYear" name="enrollmentYear" class="p-input"
+               value="{{ profile.enrollmentYear if profile else '' }}"
+               min="2000" max="2100"
+               placeholder="Contoh: 2022">
+      </div>
+
+      <div class="p-form-group">
+        <label class="p-label" for="currentSemester">Semester Saat Ini</label>
+        <input type="number" id="currentSemester" name="currentSemester" class="p-input"
+               value="{{ profile.currentSemester if profile else '' }}"
+               min="1" max="20"
+               placeholder="Contoh: 4">
+      </div>
+
+    </div>
+  </div>
+
+  {# ── Save actions ── #}
+  <div style="display:flex;align-items:center;gap:var(--p-sp-3);flex-wrap:wrap;">
+    <button type="submit" class="p-btn p-btn--primary" id="btnSaveProfile">
+      <span id="btnSaveText">Simpan Perubahan</span>
+      <span class="spinner" id="btnSaveSpinner" style="display:none;" aria-hidden="true"></span>
+    </button>
+    <span id="saveStatus" style="font-size:0.85rem;color:var(--p-text-muted);" role="status" aria-live="polite"></span>
+  </div>
+
+</form>
+
+<script>
+(function() {
+  'use strict';
+  var form       = document.getElementById('profileForm');
+  var statusEl   = document.getElementById('saveStatus');
+  var saveBtn    = document.getElementById('btnSaveProfile');
+  var saveTxt    = document.getElementById('btnSaveText');
+  var saveSpinner = document.getElementById('btnSaveSpinner');
+  var csrfToken  = '{{ csrfToken }}';
+
+  form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    statusEl.textContent = 'Menyimpan…';
+    statusEl.style.color = 'var(--p-text-muted)';
+    saveBtn.disabled = true;
+    saveTxt.textContent = 'Menyimpan…';
+    saveSpinner.style.display = 'inline-block';
+
+    var data = {};
+    new FormData(form).forEach(function(v, k) {
+      if (k !== '_csrf' && v !== '') data[k] = v;
+    });
+    if (data.currentSemester) data.currentSemester = parseInt(data.currentSemester);
+    if (data.enrollmentYear)  data.enrollmentYear  = parseInt(data.enrollmentYear);
+
+    try {
+      var r = await fetch('/api/v1/scholarship/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+        body: JSON.stringify(data),
+      });
+      var json = await r.json();
+      if (!r.ok) {
+        statusEl.textContent = json.error || 'Gagal menyimpan.';
+        statusEl.style.color = 'var(--p-error-text)';
+      } else {
+        statusEl.textContent = '✓ Profil berhasil disimpan.';
+        statusEl.style.color = 'var(--p-success-text)';
+        setTimeout(function() { statusEl.textContent = ''; statusEl.style.color = ''; }, 4000);
+      }
+    } catch(err) {
+      statusEl.textContent = 'Terjadi kesalahan jaringan.';
+      statusEl.style.color = 'var(--p-error-text)';
+    } finally {
+      saveBtn.disabled = false;
+      saveTxt.textContent = 'Simpan Perubahan';
+      saveSpinner.style.display = 'none';
+    }
+  });
+
+  var btnVerify = document.getElementById('btnSubmitForVerification');
+  if (btnVerify) {
+    btnVerify.addEventListener('click', async function() {
+      if (!confirm('Ajukan profil untuk diverifikasi oleh admin ISF?')) return;
+      btnVerify.disabled = true;
+      btnVerify.textContent = 'Mengajukan…';
+      try {
+        var r = await fetch('/api/v1/scholarship/profile/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+          body: '{}',
+        });
+        var json = await r.json();
+        if (!r.ok) { alert(json.error || 'Gagal mengajukan.'); btnVerify.disabled = false; btnVerify.textContent = 'Ajukan Verifikasi'; return; }
+        location.reload();
+      } catch { alert('Terjadi kesalahan jaringan.'); btnVerify.disabled = false; btnVerify.textContent = 'Ajukan Verifikasi'; }
+    });
+  }
+})();
+</script>
+
+{% endblock %}

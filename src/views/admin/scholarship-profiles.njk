@@ -1,0 +1,86 @@
+{% extends "layouts/admin.njk" %}
+
+{% block title %}Verifikasi Profil Mahasiswa — ISF{% endblock %}
+
+{% block breadcrumb %}
+<a href="/admin" class="admin-breadcrumb__link">Admin</a>
+<span class="admin-breadcrumb__sep">/</span>
+<a href="/admin/scholarship" class="admin-breadcrumb__link">Beasiswa</a>
+<span class="admin-breadcrumb__sep">/</span>
+<span class="admin-breadcrumb__current">Verifikasi Profil</span>
+{% endblock %}
+
+{% block body %}
+<div class="admin-page-header">
+  <div>
+    <h1 class="admin-page-title">Verifikasi Profil Mahasiswa</h1>
+    <p class="admin-page-lead">Tinjau, verifikasi, atau minta perubahan profil mahasiswa.</p>
+  </div>
+</div>
+
+<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.25rem;">
+  <a href="?status=" class="btn btn--ghost btn--sm {{ 'btn--active' if not statusFilter else '' }}">Semua</a>
+  <a href="?status=INCOMPLETE" class="btn btn--ghost btn--sm {{ 'btn--active' if statusFilter === 'INCOMPLETE' else '' }}">Belum Lengkap</a>
+  <a href="?status=PENDING_VERIFICATION" class="btn btn--ghost btn--sm {{ 'btn--active' if statusFilter === 'PENDING_VERIFICATION' else '' }}">Menunggu Verifikasi</a>
+  <a href="?status=VERIFIED" class="btn btn--ghost btn--sm {{ 'btn--active' if statusFilter === 'VERIFIED' else '' }}">Terverifikasi</a>
+  <a href="?status=CHANGES_REQUESTED" class="btn btn--ghost btn--sm {{ 'btn--active' if statusFilter === 'CHANGES_REQUESTED' else '' }}">Perlu Perubahan</a>
+</div>
+
+{% if dbError %}
+<div class="alert alert--warning">{{ dbError }}</div>
+{% endif %}
+
+{% if profiles and profiles.length > 0 %}
+<div class="table-wrapper">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Nama Lengkap</th>
+        <th>Universitas</th>
+        <th>Program Studi</th>
+        <th>Semester</th>
+        <th>Status</th>
+        <th>Diperbarui</th>
+        <th>Tindakan</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in profiles %}
+      <tr>
+        <td>{{ p.fullName }}</td>
+        <td>{{ p.universityName or '—' }}</td>
+        <td>{{ p.studyProgram or '—' }}</td>
+        <td>{{ p.currentSemester or '—' }}</td>
+        <td>
+          <span class="status-badge status-badge--{{ p.verificationStatus | lower | replace('_', '-') }}">
+            {{ p.verificationStatus | replace('_', ' ') }}
+          </span>
+        </td>
+        <td style="font-size:0.82rem;color:var(--color-text-muted);">
+          {{ p.updatedAt | string | truncate(10, true, '') if p.updatedAt else '—' }}
+        </td>
+        <td>
+          <a href="/admin/scholarship/profiles/{{ p.id }}" class="btn btn--ghost btn--sm">Detail</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if total > profiles.length %}
+<div style="margin-top:1rem;display:flex;gap:0.5rem;align-items:center;">
+  {% if offset > 0 %}
+  <a href="?status={{ statusFilter or '' }}&offset={{ offset - limit }}" class="btn btn--ghost btn--sm">← Sebelumnya</a>
+  {% endif %}
+  <span style="font-size:0.85rem;color:var(--color-text-muted);">{{ offset + 1 }}–{{ offset + profiles.length }} dari {{ total }}</span>
+  {% if offset + profiles.length < total %}
+  <a href="?status={{ statusFilter or '' }}&offset={{ offset + limit }}" class="btn btn--ghost btn--sm">Berikutnya →</a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<p style="color:var(--color-text-muted);padding:1rem 0;">Tidak ada profil mahasiswa ditemukan.</p>
+{% endif %}
+{% endblock %}

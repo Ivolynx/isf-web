@@ -1,0 +1,197 @@
+{% extends "layouts/admin.njk" %}
+
+{% block title %}Detail Pengajuan Pembiayaan — ISF{% endblock %}
+
+{% block breadcrumb %}
+<a href="/admin" class="admin-breadcrumb__link">Admin</a>
+<span class="admin-breadcrumb__sep">/</span>
+<a href="/admin/scholarship" class="admin-breadcrumb__link">Beasiswa</a>
+<span class="admin-breadcrumb__sep">/</span>
+<a href="/admin/scholarship/loans" class="admin-breadcrumb__link">Pembiayaan</a>
+<span class="admin-breadcrumb__sep">/</span>
+<span class="admin-breadcrumb__current">Detail</span>
+{% endblock %}
+
+{% block body %}
+<div class="admin-page-header">
+  <div>
+    <h1 class="admin-page-title">Pengajuan Pembiayaan</h1>
+    <p class="admin-page-lead">
+      <span class="status-badge status-badge--{{ loan.status | lower | replace('_', '-') }}">{{ loan.status | replace('_', ' ') }}</span>
+      {% if loan.isSimulation %}<span style="font-size:0.78rem;color:var(--color-text-muted);margin-left:0.5rem;">SIMULASI</span>{% endif %}
+    </p>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;max-width:900px;margin-bottom:1.5rem;">
+  <div class="owner-section">
+    <h2 class="owner-section__title">Detail Pengajuan</h2>
+    <dl style="display:grid;gap:0.5rem;">
+      <dt style="font-size:0.78rem;color:var(--color-text-muted);">Universitas</dt><dd>{{ loan.universityName }}</dd>
+      <dt style="font-size:0.78rem;color:var(--color-text-muted);">Program Studi</dt><dd>{{ loan.studyProgram }}</dd>
+      <dt style="font-size:0.78rem;color:var(--color-text-muted);">Semester</dt><dd>{{ loan.semester }}</dd>
+      <dt style="font-size:0.78rem;color:var(--color-text-muted);">Tahun Akademik</dt><dd>{{ loan.academicYear }}</dd>
+      <dt style="font-size:0.78rem;color:var(--color-text-muted);">Nominal Diajukan</dt>
+      <dd style="font-family:monospace;font-weight:600;">Rp {{ loan.requestedAmount | float | round(0) | string }}</dd>
+      <dt style="font-size:0.78rem;color:var(--color-text-muted);">Tenor Diusulkan</dt><dd>{{ loan.requestedTenorMonths }} bulan</dd>
+    </dl>
+  </div>
+  <div class="owner-section">
+    <h2 class="owner-section__title">Tujuan Penggunaan</h2>
+    <p style="white-space:pre-line;font-size:0.9rem;">{{ loan.purposeDescription }}</p>
+    {% if loan.estimatedCosts and loan.estimatedCosts.length > 0 %}
+    <h3 style="font-size:0.85rem;margin-top:1rem;color:var(--color-text-muted);">Estimasi Biaya</h3>
+    <table style="width:100%;font-size:0.85rem;border-collapse:collapse;">
+      {% for cost in loan.estimatedCosts %}
+      <tr>
+        <td style="padding:0.2rem 0.5rem 0.2rem 0;">{{ cost.description }}</td>
+        <td style="font-family:monospace;text-align:right;">Rp {{ cost.amount | float | round(0) | string }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% endif %}
+  </div>
+</div>
+
+{% if loan.approvedAmount %}
+<div class="owner-section" style="max-width:560px;margin-bottom:1.5rem;">
+  <h2 class="owner-section__title">Keputusan Persetujuan</h2>
+  <dl style="display:grid;gap:0.5rem;">
+    <dt style="font-size:0.78rem;color:var(--color-text-muted);">Nominal Disetujui</dt>
+    <dd style="font-family:monospace;font-weight:600;">Rp {{ loan.approvedAmount | float | round(0) | string }}</dd>
+    <dt style="font-size:0.78rem;color:var(--color-text-muted);">Tenor Disetujui</dt><dd>{{ loan.approvedTenorMonths }} bulan</dd>
+    <dt style="font-size:0.78rem;color:var(--color-text-muted);">Tanggal Pencairan</dt><dd>{{ loan.disbursementDate or '—' }}</dd>
+  </dl>
+</div>
+{% endif %}
+
+{% if loan.status === 'SUBMITTED' or loan.status === 'IN_REVIEW' %}
+<div class="owner-section" style="max-width:560px;">
+  <h2 class="owner-section__title">Persetujuan Pembiayaan</h2>
+  <p style="font-size:0.82rem;color:var(--color-text-muted);margin-bottom:1rem;">
+    Nominal dan tenor final ditetapkan oleh admin. Mahasiswa akan diberitahu setelah keputusan diambil.
+  </p>
+  <form id="approveForm">
+    <input type="hidden" name="_csrf" value="{{ csrfToken }}">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+      <div class="form-group">
+        <label class="form-label" for="approvedAmount">Nominal Disetujui (Rp) <span style="color:var(--red-400);">*</span></label>
+        <input type="number" id="approvedAmount" name="approvedAmount" class="form-input" required min="1" step="1"
+               value="{{ loan.requestedAmount | float | round(0) | string }}">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="approvedTenorMonths">Tenor (bulan) <span style="color:var(--red-400);">*</span></label>
+        <input type="number" id="approvedTenorMonths" name="approvedTenorMonths" class="form-input" required min="1" max="120"
+               value="{{ loan.requestedTenorMonths }}">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="disbursementDate">Tanggal Pencairan <span style="color:var(--red-400);">*</span></label>
+        <input type="date" id="disbursementDate" name="disbursementDate" class="form-input" required>
+      </div>
+    </div>
+    <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;">
+      <button type="button" id="btnApprove" class="btn btn--primary">✓ Setujui</button>
+      <button type="button" id="btnReject" class="btn btn--ghost" style="border-color:var(--red-400);color:var(--red-400);">✗ Tolak</button>
+      <span id="approveStatus" style="font-size:0.85rem;color:var(--color-text-muted);"></span>
+    </div>
+  </form>
+</div>
+
+{% if loan.status === 'APPROVED' %}
+<div class="owner-section" style="max-width:680px;margin-top:1.5rem;">
+  <h2 class="owner-section__title">Buat Perjanjian &amp; Jadwal Cicilan</h2>
+  <p style="font-size:0.82rem;color:var(--color-text-muted);margin-bottom:1rem;">
+    Buat nomor perjanjian dan jadwal cicilan. Jadwal cicilan akan langsung dibuat secara otomatis.
+  </p>
+  <form id="agreementForm">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+      <div class="form-group">
+        <label class="form-label">Nomor Perjanjian <span style="color:var(--red-400);">*</span></label>
+        <input type="text" id="agreementNumber" name="agreementNumber" class="form-input" required
+               placeholder="Contoh: ISF/LOAN/2024/001">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nominal Pokok (Rp) <span style="color:var(--red-400);">*</span></label>
+        <input type="number" id="principalAmount" name="principalAmount" class="form-input" required min="1" step="1">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tenor (bulan) <span style="color:var(--red-400);">*</span></label>
+        <input type="number" id="tenorMonths" name="tenorMonths" class="form-input" required min="1" max="120">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tanggal Pencairan <span style="color:var(--red-400);">*</span></label>
+        <input type="date" id="agDisbursementDate" name="disbursementDate" class="form-input" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tanggal Cicilan Pertama <span style="color:var(--red-400);">*</span></label>
+        <input type="date" id="firstPaymentDate" name="firstPaymentDate" class="form-input" required>
+      </div>
+    </div>
+    <div style="display:flex;gap:0.75rem;align-items:center;">
+      <button type="submit" id="btnCreateAgreement" class="btn btn--primary">Buat Perjanjian &amp; Jadwal</button>
+      <span id="agreementStatus" style="font-size:0.85rem;color:var(--color-text-muted);"></span>
+    </div>
+  </form>
+</div>
+{% endif %}
+{% endif %}
+
+<script>
+(function() {
+  const csrf = '{{ csrfToken }}';
+  const loanId = '{{ loan.id }}';
+
+  document.getElementById('btnApprove')?.addEventListener('click', async function() {
+    const status = document.getElementById('approveStatus');
+    const amount = document.getElementById('approvedAmount').value;
+    const tenor = parseInt(document.getElementById('approvedTenorMonths').value);
+    const disbursementDate = document.getElementById('disbursementDate').value;
+    if (!amount || !tenor || !disbursementDate) { alert('Isi semua kolom persetujuan.'); return; }
+    document.getElementById('btnApprove').disabled = true;
+    document.getElementById('btnReject').disabled = true;
+    status.textContent = 'Memproses…';
+    try {
+      const r = await fetch('/api/v1/scholarship/admin/loans/' + loanId + '/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrf },
+        body: JSON.stringify({ approvedAmount: String(amount), approvedTenorMonths: tenor, disbursementDate }),
+      });
+      const json = await r.json();
+      if (!r.ok) { status.textContent = json.error || 'Gagal.'; status.style.color='var(--red-400)';
+        document.getElementById('btnApprove').disabled = false; document.getElementById('btnReject').disabled = false; return; }
+      status.textContent = 'Disetujui.'; status.style.color='var(--color-success-text)';
+      setTimeout(() => location.reload(), 1200);
+    } catch { status.textContent = 'Kesalahan jaringan.'; status.style.color='var(--red-400)';
+      document.getElementById('btnApprove').disabled = false; document.getElementById('btnReject').disabled = false; }
+  });
+
+  const agreementForm = document.getElementById('agreementForm');
+  if (agreementForm) {
+    agreementForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const status = document.getElementById('agreementStatus');
+      const btn = document.getElementById('btnCreateAgreement');
+      btn.disabled = true; status.textContent = 'Membuat perjanjian…';
+      const data = {
+        agreementNumber: document.getElementById('agreementNumber').value,
+        principalAmount: String(document.getElementById('principalAmount').value),
+        tenorMonths: parseInt(document.getElementById('tenorMonths').value),
+        disbursementDate: document.getElementById('agDisbursementDate').value,
+        firstPaymentDate: document.getElementById('firstPaymentDate').value,
+      };
+      try {
+        const r = await fetch('/api/v1/scholarship/admin/loans/' + loanId + '/agreement', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrf },
+          body: JSON.stringify(data),
+        });
+        const json = await r.json();
+        if (!r.ok) { status.textContent = json.error || 'Gagal.'; status.style.color='var(--red-400)'; btn.disabled=false; return; }
+        status.textContent = 'Perjanjian dan jadwal cicilan berhasil dibuat.'; status.style.color='var(--color-success-text)';
+        setTimeout(() => location.reload(), 1500);
+      } catch { status.textContent='Kesalahan jaringan.'; status.style.color='var(--red-400)'; btn.disabled=false; }
+    });
+  }
+})();
+</script>
+{% endblock %}

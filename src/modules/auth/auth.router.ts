@@ -54,13 +54,18 @@ const registerLimiter = rateLimit({
   skipSuccessfulRequests: false,
 });
 
+// Login limiter — only counts FAILED attempts.
+// skipSuccessfulRequests: true means a successful 200 login does NOT consume
+// quota, so legitimate users are never locked out by their own successful logins.
+// Failed attempts (wrong password, locked account, etc.) still count and
+// will trigger the 429 after max failures.
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1_000,   // 15 minutes
-  max: isTest ? 1_000 : 10,
+  max: isTest ? 1_000 : 15,    // Raised from 10→15: each failure counts once; successful logins no longer consume quota
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many login attempts, please try again later.' },
-  skipSuccessfulRequests: false,
+  message: { error: 'Too many failed login attempts. Please wait 15 minutes and try again.' },
+  skipSuccessfulRequests: true, // FIX: only count failed (4xx/5xx) responses, not successful logins
 });
 
 // Forgot-password: same generic limit regardless of outcome (prevents enumeration

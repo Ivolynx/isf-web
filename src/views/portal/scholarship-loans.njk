@@ -1,0 +1,194 @@
+{% extends "layouts/portal.njk" %}
+
+{% block title %}Pembiayaan Saya — ISF Member Portal{% endblock %}
+
+{% block breadcrumb %}
+  <a href="/portal" class="portal-topbar__breadcrumb a">Member Portal</a>
+  <span class="portal-topbar__breadcrumb__sep" aria-hidden="true">›</span>
+  <span class="portal-topbar__breadcrumb__current">Pembiayaan Saya</span>
+{% endblock %}
+
+{% block body %}
+
+<div class="portal-page-header">
+  <div>
+    <h1 class="portal-page-title">Pembiayaan &amp; Beasiswa</h1>
+    <p class="portal-page-lead">Pantau status pengajuan beasiswa dan pembiayaan pendidikan Anda.</p>
+  </div>
+  <a href="/portal/scholarship/loan/new" class="p-btn p-btn--primary p-btn--sm">
+    <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+    Ajukan Pembiayaan
+  </a>
+</div>
+
+{# Simulation notice #}
+<div class="p-alert p-alert--info" role="note">
+  <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true" flex-shrink="0">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/>
+  </svg>
+  <div>
+    <strong>Mode Simulasi.</strong> Seluruh fitur pembiayaan saat ini dalam mode simulasi pengembangan. Belum ada pencairan atau tagihan uang nyata yang aktif sampai kebijakan hukum dan operasional disahkan.
+  </div>
+</div>
+
+{% if dbError %}
+<div class="p-alert p-alert--warning" role="alert">
+  <strong>Perhatian:</strong> {{ dbError }}
+</div>
+{% endif %}
+
+{# ── Loan Applications ───────────────────────────────── #}
+<div class="p-section">
+  <h2 class="p-section__title">Pengajuan Student Loan</h2>
+
+  {% if loans and loans.length > 0 %}
+  <div class="p-table-wrap">
+    <table class="p-table">
+      <thead>
+        <tr>
+          <th>Universitas</th>
+          <th>Program Studi</th>
+          <th>Nominal</th>
+          <th>Tenor</th>
+          <th>Status</th>
+          <th>Diajukan</th>
+          <th>Tindakan</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for loan in loans %}
+        <tr>
+          <td style="font-weight:500;">{{ loan.universityName }}</td>
+          <td>{{ loan.studyProgram }}</td>
+          <td class="p-mono">Rp {{ loan.requestedAmount | float | round(0) | string }}</td>
+          <td class="p-text-muted">{{ loan.requestedTenorMonths }} bln</td>
+          <td>
+            <span class="p-badge p-badge--{{ loan.status | lower | replace('_', '-') }}">
+              {{ loan.status | replace('_', ' ') }}
+            </span>
+            {% if loan.isSimulation %}
+            <span class="p-badge p-badge--simulation" style="margin-left:0.25rem;">SIM</span>
+            {% endif %}
+          </td>
+          <td class="p-text-muted p-text-sm">
+            {{ loan.createdAt | string | truncate(10, true, '') if loan.createdAt else '—' }}
+          </td>
+          <td>
+            {% if loan.status === 'DRAFT' %}
+            <button type="button" class="p-btn p-btn--primary p-btn--sm btn-submit-loan" data-id="{{ loan.id }}">
+              Kirim untuk Ditinjau
+            </button>
+            {% else %}
+            <a href="/portal/scholarship/loan/{{ loan.id }}" class="p-btn p-btn--ghost p-btn--sm">Lihat Detail</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="p-empty">
+    <div class="p-empty__icon" aria-hidden="true">
+      <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5"/>
+      </svg>
+    </div>
+    <h3>Belum ada pengajuan pembiayaan</h3>
+    <p>Lengkapi profil mahasiswa terlebih dahulu, lalu ajukan pembiayaan pendidikan.</p>
+    <div style="display:flex;justify-content:center;gap:var(--p-sp-3);margin-top:var(--p-sp-5);flex-wrap:wrap;">
+      <a href="/portal/scholarship/profile" class="p-btn p-btn--ghost p-btn--sm">Lengkapi Profil</a>
+      <a href="/portal/scholarship/loan/new" class="p-btn p-btn--primary p-btn--sm">Ajukan Sekarang</a>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{# ── Installments ────────────────────────────────────── #}
+{% if installments and installments.length > 0 %}
+<div class="p-section p-mt-6">
+  <h2 class="p-section__title">Jadwal Cicilan</h2>
+  <div class="p-table-wrap">
+    <table class="p-table">
+      <thead>
+        <tr>
+          <th>Cicilan ke</th>
+          <th>Jatuh Tempo</th>
+          <th>Pokok</th>
+          <th>Dibayar</th>
+          <th>Sisa</th>
+          <th>Status</th>
+          <th>Tindakan</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inst in installments %}
+        {% set sisa = (inst.principalAmount | float) - (inst.amountPaid | float) %}
+        <tr>
+          <td style="font-weight:600;">{{ inst.installmentNumber }}</td>
+          <td class="p-text-sm">{{ inst.dueDate }}</td>
+          <td class="p-mono">Rp {{ inst.principalAmount | float | round(0) | string }}</td>
+          <td class="p-mono">Rp {{ inst.amountPaid | float | round(0) | string }}</td>
+          <td class="p-mono" style="{{ 'color:var(--p-error-text);font-weight:600;' if sisa > 0 else '' }}">
+            Rp {{ sisa | round(0) | string }}
+          </td>
+          <td>
+            <span class="p-badge p-badge--{{ inst.status | lower | replace('_', '-') }}">
+              {{ inst.status | replace('_', ' ') }}
+            </span>
+          </td>
+          <td>
+            {% if inst.status !== 'PAID' and inst.status !== 'CANCELLED' and inst.status !== 'PENDING_VERIFICATION' %}
+            <a href="/portal/scholarship/installment/{{ inst.id }}/pay" class="p-btn p-btn--primary p-btn--sm">
+              Unggah Bukti
+            </a>
+            {% elif inst.status === 'PENDING_VERIFICATION' %}
+            <span class="p-text-muted p-text-sm">Menunggu verifikasi</span>
+            {% elif inst.status === 'PAID' %}
+            <span style="color:var(--p-success-text);font-size:0.8rem;font-weight:600;">✓ Lunas</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<input type="hidden" id="csrfToken" value="{{ csrfToken }}">
+<script>
+(function() {
+  'use strict';
+  document.querySelectorAll('.btn-submit-loan').forEach(function(btn) {
+    btn.addEventListener('click', async function() {
+      if (!confirm('Kirim pengajuan pembiayaan ini untuk ditinjau oleh admin ISF?')) return;
+      var id   = btn.dataset.id;
+      var csrf = document.getElementById('csrfToken').value;
+      btn.disabled = true;
+      btn.textContent = 'Mengirim…';
+      try {
+        var r = await fetch('/api/v1/scholarship/loans/' + id + '/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrf },
+          body: '{}',
+        });
+        var json = await r.json();
+        if (!r.ok) {
+          alert(json.error || 'Gagal mengirim.');
+          btn.disabled = false;
+          btn.textContent = 'Kirim untuk Ditinjau';
+          return;
+        }
+        location.reload();
+      } catch {
+        alert('Terjadi kesalahan jaringan.');
+        btn.disabled = false;
+        btn.textContent = 'Kirim untuk Ditinjau';
+      }
+    });
+  });
+})();
+</script>
+
+{% endblock %}

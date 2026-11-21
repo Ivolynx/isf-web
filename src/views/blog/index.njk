@@ -1,0 +1,318 @@
+{% extends "layouts/base.njk" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block head %}
+<meta name="description" content="{{ metaDescription }}">
+<link rel="canonical" href="/blog">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/home.css">
+<style>
+/* Blog public page — uses design-token vars for full light/dark support */
+.blog-pubpage { min-height: 100vh; display: flex; flex-direction: column; background: var(--color-bg); color: var(--color-text); }
+
+/* Header banner — Forest→Blue gradient */
+.blog-pubpage-header {
+  background: linear-gradient(130deg, #194749 0%, #215E61 60%, #1D2128 100%);
+  padding: 3.5rem 0 3rem;
+}
+.blog-pubpage-header .eyebrow { color: rgba(255,255,255,0.65); }
+.blog-pubpage-header h1 {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+  line-height: 1.1;
+  color: #FFFFFF;
+}
+.blog-pubpage-header p { color: rgba(255,255,255,0.75); max-width: 42rem; font-size: 1.05rem; }
+.blog-pubpage-main { flex: 1; padding: 3.5rem 0 5rem; }
+.blog-pub-layout { display: grid; gap: 3rem; }
+@media (min-width: 64em) {
+  .blog-pub-layout { grid-template-columns: 1fr 280px; gap: 4rem; align-items: start; }
+}
+
+/* Main article grid */
+.blog-pub-grid { display: grid; gap: 2rem; }
+.blog-pub-card {
+  display: grid;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+}
+.blog-pub-card:hover { border-color: var(--color-primary); transform: translateY(-3px); box-shadow: var(--shadow-md); }
+@media (min-width: 40em) {
+  .blog-pub-card { grid-template-columns: 240px 1fr; }
+  .blog-pub-card__img { min-height: unset; }
+}
+.blog-pub-card__img {
+  overflow: hidden;
+  background: var(--color-bg-secondary);
+  min-height: 12rem;
+}
+.blog-pub-card__img img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.5s; }
+.blog-pub-card:hover .blog-pub-card__img img { transform: scale(1.04); }
+.blog-pub-card__body { padding: 1.75rem; display: flex; flex-direction: column; }
+.blog-pub-card__cats { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.75rem; }
+.blog-pub-card__title {
+  font-family: var(--font-display);
+  font-size: clamp(1.1rem, 2vw, 1.35rem);
+  font-weight: 500;
+  line-height: 1.25;
+  margin-bottom: 0.6rem;
+}
+.blog-pub-card__title a { color: var(--color-text); }
+.blog-pub-card__title a:hover { color: var(--color-primary); }
+.blog-pub-card__summary { color: var(--color-text-secondary); font-size: 0.88rem; line-height: 1.65; flex: 1; margin-bottom: 1rem; }
+.blog-pub-card__meta { font-size: 0.78rem; color: var(--color-text-muted); margin-bottom: 0.875rem; display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.blog-pub-card__tags { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.blog-pub-card__read { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.85rem; font-weight: 600; color: var(--color-primary); margin-top: 0.5rem; }
+.blog-pub-card__read:hover { color: var(--color-primary-hover); }
+
+/* Blog tag chips on cards */
+.blog-pub-card__tags span {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+/* Sidebar */
+.blog-pub-sidebar { display: flex; flex-direction: column; gap: 2rem; }
+.blog-sidebar-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+}
+.blog-sidebar-card__title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+.blog-sidebar-cats { display: flex; flex-direction: column; }
+.blog-sidebar-cats__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.88rem;
+  color: var(--color-text-secondary);
+  transition: color 0.2s;
+}
+.blog-sidebar-cats__item:last-child { border-bottom: 0; }
+.blog-sidebar-cats__item:hover { color: var(--color-primary); }
+.blog-sidebar-cats__item a { color: inherit; width: 100%; display: flex; justify-content: space-between; }
+
+/* Sidebar about text */
+.blog-sidebar-about { color: var(--color-text-secondary); font-size: 0.88rem; line-height: 1.6; margin-bottom: 1.25rem; }
+
+/* Pagination */
+.blog-pagination { display: flex; align-items: center; justify-content: center; gap: 0.75rem; margin-top: 3rem; flex-wrap: wrap; }
+.blog-pagination__info { color: var(--color-text-muted); font-size: 0.88rem; }
+
+/* Empty state */
+.blog-pub-empty { grid-column: 1 / -1; text-align: center; padding: 5rem 1rem; }
+.blog-pub-empty__icon {
+  width: 5rem; height: 5rem;
+  display: grid; place-items: center;
+  border: 1.5px solid var(--color-border-strong);
+  border-radius: 50%;
+  margin: 0 auto 1.5rem;
+  color: var(--color-primary);
+}
+.blog-pub-empty h2 { font-family: var(--font-display); font-size: 1.4rem; color: var(--color-text); margin-bottom: 0.5rem; }
+.blog-pub-empty p { color: var(--color-text-secondary); }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="blog-pubpage">
+  <header class="site-header" data-header>
+    <div class="container site-header__inner">
+      <a class="brand" href="/" aria-label="ISF">
+        <span class="brand__mark" aria-hidden="true">I</span>
+        <span class="brand__text">INTELLIGENTSIA<span class="brand__sub">Scholarship Fund</span></span>
+      </a>
+      <button class="nav-toggle" type="button" aria-label="Buka menu" aria-expanded="false" aria-controls="blog-nav" data-nav-toggle>
+        <span class="nav-toggle__bar"></span>
+        <span class="nav-toggle__bar"></span>
+        <span class="sr-only">Buka menu</span>
+      </button>
+      <nav class="site-nav" id="blog-nav" aria-label="Navigasi">
+        <ul class="site-nav__list">
+          <li><a href="/#tentang">Tentang ISF</a></li>
+          <li><a href="/#program">Program</a></li>
+          <li><a href="/fundraising">Penggalangan Dana</a></li>
+          <li><a href="/blog" class="is-active">Blog</a></li>
+          <li><a href="/#cara-daftar">Cara Daftar</a></li>
+        </ul>
+        <div class="site-nav__actions">
+          <a class="btn btn--primary btn--sm" href="/auth/register">Daftar Sekarang</a>
+          <button class="theme-toggle" type="button" aria-label="Ganti tema" title="Light / Dark Mode">
+            <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+            <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path stroke-linecap="round" d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          </button>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <div class="blog-pubpage-header">
+    <div class="container">
+      <p class="eyebrow">Blog & Berita</p>
+      <h1>Berita, Cerita, dan Wawasan</h1>
+      <p>Artikel terbaru, pengumuman program beasiswa, cerita penerima, dan konten pendidikan dari tim redaksi ISF.</p>
+    </div>
+  </div>
+
+  <main class="blog-pubpage-main" id="main-content">
+    <div class="container">
+      <div class="blog-pub-layout">
+        <!-- Main content -->
+        <div>
+          {% if articles and articles.length > 0 %}
+          <div class="blog-pub-grid">
+            {% for article in articles %}
+            <article class="blog-pub-card" data-reveal>
+              {% if article.coverImageUrl %}
+              <div class="blog-pub-card__img">
+                <img src="{{ article.coverImageUrl }}" alt="{{ article.title }}" loading="lazy">
+              </div>
+              {% endif %}
+              <div class="blog-pub-card__body">
+                <div class="blog-pub-card__cats">
+                  {% for cat in article.categories %}
+                  <span class="blog-cat-tag">{{ cat.name }}</span>
+                  {% endfor %}
+                </div>
+                <h2 class="blog-pub-card__title">
+                  <a href="/blog/{{ article.slug }}">{{ article.title }}</a>
+                </h2>
+                {% if article.summary %}
+                <p class="blog-pub-card__summary">{{ article.summary | truncate(140) }}</p>
+                {% endif %}
+                <div class="blog-pub-card__meta">
+                  <time datetime="{{ article.publishedAt }}">
+                    {{ article.publishedAt | string | truncate(10, true, '') if article.publishedAt else '' }}
+                  </time>
+                </div>
+                {% if article.tags and article.tags.length > 0 %}
+                <div class="blog-pub-card__tags">
+                  {% for tag in article.tags %}
+                  <span>{{ tag.name }}</span>
+                  {% endfor %}
+                </div>
+                {% endif %}
+                <a href="/blog/{{ article.slug }}" class="blog-pub-card__read">
+                  Baca Selengkapnya
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+                </a>
+              </div>
+            </article>
+            {% endfor %}
+          </div>
+
+          {% if totalPages > 1 %}
+          <nav class="blog-pagination" aria-label="Navigasi halaman">
+            {% if hasPrev %}
+            <a href="/blog?page={{ prevPage }}" class="btn btn--ghost btn--sm" rel="prev">← Sebelumnya</a>
+            {% endif %}
+            <span class="blog-pagination__info">Halaman {{ page }} dari {{ totalPages }}</span>
+            {% if hasNext %}
+            <a href="/blog?page={{ nextPage }}" class="btn btn--ghost btn--sm" rel="next">Selanjutnya →</a>
+            {% endif %}
+          </nav>
+          {% endif %}
+
+          {% else %}
+          <div class="blog-pub-empty">
+            <div class="blog-pub-empty__icon" aria-hidden="true">
+              <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z"/></svg>
+            </div>
+            <h2>Belum ada artikel yang diterbitkan</h2>
+            <p>Tim redaksi ISF sedang mempersiapkan artikel terbaik. Pantau terus pembaruan kami.</p>
+            <a href="/" class="btn btn--ghost" style="margin-top:1.5rem;">Kembali ke Beranda</a>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <aside class="blog-pub-sidebar" aria-label="Sidebar blog">
+          <div class="blog-sidebar-card">
+            <h2 class="blog-sidebar-card__title">Kategori</h2>
+            <div class="blog-sidebar-cats">
+              <div class="blog-sidebar-cats__item">
+                <a href="/blog">
+                  <span>Semua Artikel</span>
+                  <span>→</span>
+                </a>
+              </div>
+              <div class="blog-sidebar-cats__item">
+                <a href="/blog">
+                  <span>Berita ISF</span>
+                  <span>→</span>
+                </a>
+              </div>
+              <div class="blog-sidebar-cats__item">
+                <a href="/blog">
+                  <span>Beasiswa</span>
+                  <span>→</span>
+                </a>
+              </div>
+              <div class="blog-sidebar-cats__item">
+                <a href="/blog">
+                  <span>Pendidikan</span>
+                  <span>→</span>
+                </a>
+              </div>
+              <div class="blog-sidebar-cats__item">
+                <a href="/blog">
+                  <span>Cerita Penerima</span>
+                  <span>→</span>
+                </a>
+              </div>
+              <div class="blog-sidebar-cats__item">
+                <a href="/blog">
+                  <span>Opini & Artikel</span>
+                  <span>→</span>
+                </a>
+              </div>
+            </div>
+          </div>
+          <div class="blog-sidebar-card">
+            <h2 class="blog-sidebar-card__title">Tentang ISF</h2>
+            <p class="blog-sidebar-about">Intelligentsia Scholarship Fund mendukung mahasiswa berprestasi di seluruh Indonesia dengan beasiswa penuh, mentoring, dan akses jaringan profesional.</p>
+            <a href="/auth/register" class="btn btn--primary btn--sm" style="width:100%;justify-content:center;">Daftar Beasiswa</a>
+          </div>
+          <div class="blog-sidebar-card">
+            <h2 class="blog-sidebar-card__title">Dukung ISF</h2>
+            <p class="blog-sidebar-about">Donasi Anda membantu mahasiswa berprestasi mendapatkan pendidikan yang layak.</p>
+            <a href="/fundraising" class="btn btn--ghost btn--sm" style="width:100%;justify-content:center;">Lihat Kampanye</a>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container site-footer__bottom" style="padding-top:2rem;padding-bottom:2rem;">
+      <p>© {{ year }} Yayasan Intelegensia Nusantara. <a href="/">Beranda</a> · <a href="/blog">Blog</a> · <a href="/fundraising">Kampanye</a> · <a href="/auth/login">Portal</a></p>
+    </div>
+  </footer>
+</div>
+<script src="/js/main.js" defer></script>
+{% endblock %}

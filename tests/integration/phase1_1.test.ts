@@ -141,8 +141,10 @@ describe('RBAC — negative authorization tests', async () => {
     expect(hasPermission('USER', 'user:delete')).toBe(false);
   });
 
-  it('USER cannot perform editor actions (article:create)', () => {
-    expect(hasPermission('USER', 'article:create')).toBe(false);
+  it('USER cannot perform editor actions (article:publish)', () => {
+    // USER has article:create/edit/submit_review for content submissions,
+    // but cannot publish articles (that requires ADMIN or OWNER).
+    expect(hasPermission('USER', 'article:publish')).toBe(false);
   });
 
   it('EDITOR cannot perform admin-only action (user:change_role)', () => {

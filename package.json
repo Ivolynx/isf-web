@@ -11,8 +11,9 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc --project tsconfig.build.json",
+    "build:editor": "esbuild src/client/editor.ts --bundle --format=iife --global-name=ISFEditor --outfile=public/js/editor.bundle.js --minify --platform=browser",
     "start": "node dist/server.js",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit --project src/client/tsconfig.json",
     "lint": "eslint src tests",
     "lint:fix": "eslint src tests --fix",
     "format": "prettier --write .",
@@ -29,6 +30,16 @@
     "db:reset-dev-password": "tsx scripts/reset-dev-password.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.717.0",
+    "@aws-sdk/s3-request-presigner": "^3.717.0",
+    "@tiptap/core": "^3.32.2",
+    "@tiptap/extension-image": "^3.32.2",
+    "@tiptap/extension-link": "^3.32.2",
+    "@tiptap/extension-placeholder": "^3.32.2",
+    "@tiptap/extension-text-align": "^3.32.2",
+    "@tiptap/extension-underline": "^3.32.2",
+    "@tiptap/pm": "^3.32.2",
+    "@tiptap/starter-kit": "^3.32.2",
     "argon2": "^0.41.1",
     "connect-pg-simple": "^10.0.0",
     "cookie-parser": "^1.4.7",
@@ -39,6 +50,7 @@
     "express-rate-limit": "^7.5.0",
     "express-session": "^1.18.1",
     "helmet": "^8.0.0",
+    "multer": "^1.4.5-lts.2",
     "nodemailer": "^10.0.13",
     "nunjucks": "^3.2.4",
     "pg": "^8.13.3",
@@ -54,6 +66,7 @@
     "@types/dotenv": "*",
     "@types/express": "^5.0.3",
     "@types/express-session": "^1.18.1",
+    "@types/multer": "^1.4.13",
     "@types/node": "^24.0.0",
     "@types/nodemailer": "^8.0.2",
     "@types/nunjucks": "^3.2.6",
@@ -71,8 +84,14 @@
     "typescript-eslint": "^8.33.0",
     "vitest": "^3.2.3"
   },
+  "overrides": {
+    "@esbuild-kit/core-utils": {
+      "esbuild": "^0.25.4"
+    }
+  },
   "allowScripts": {
     "esbuild@0.25.12": true,
+    "esbuild@0.25.4": true,
     "argon2@0.41.1": true,
     "esbuild@0.18.20": true,
     "esbuild@0.19.12": true,

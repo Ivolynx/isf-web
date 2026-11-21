@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title }}</title>
+  <meta name="description" content="{{ metaDescription }}">
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/design-tokens.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/home.css">
+  {# Anti-flash: apply saved theme BEFORE paint #}
+  <script>
+    (function(){
+      try {
+        var t = localStorage.getItem('isf-theme');
+        if (t === 'dark') {
+          document.documentElement.setAttribute('data-theme','dark');
+        } else if (!t && window.matchMedia && window.matchMedia('(prefers-color-scheme:dark)').matches) {
+          document.documentElement.setAttribute('data-theme','dark');
+        } else {
+          document.documentElement.setAttribute('data-theme','light');
+        }
+      } catch(e){
+        document.documentElement.setAttribute('data-theme','light');
+      }
+    })();
+  </script>
+</head>
+<body>
+<a class="skip-link" href="#main">Langsung ke konten</a>
+
+<!-- HEADER -->
+<div class="nav-overlay" id="nav-overlay" aria-hidden="true"></div>
+<header class="site-header" data-header>
+  <div class="container site-header__inner">
+    <a class="brand" href="/" aria-label="Intelligentsia Scholarship Fund">
+      <span class="brand__mark" aria-hidden="true">I</span>
+      <span class="brand__text">INTELLIGENTSIA<span class="brand__sub">Scholarship Fund</span></span>
+    </a>
+    <button class="nav-toggle" type="button" aria-label="Buka menu" aria-expanded="false" aria-controls="site-nav" data-nav-toggle>
+      <span class="nav-toggle__bar"></span>
+      <span class="nav-toggle__bar"></span>
+      <span class="nav-toggle__bar"></span>
+    </button>
+    <nav class="site-nav" id="site-nav" aria-label="Navigasi utama">
+      <ul class="site-nav__list">
+        <li><a href="#tentang">Tentang ISF</a></li>
+        <li><a href="#program">Program</a></li>
+        <li><a href="#fundraising">Donasi</a></li>
+        <li><a href="#berita">Blog</a></li>
+        <li><a href="#cara-daftar">Cara Daftar</a></li>
+        <li><a href="#informasi">FAQ</a></li>
+      </ul>
+      <div class="site-nav__actions">
+        <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Ganti tema" title="Light / Dark Mode">
+          <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+          <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path stroke-linecap="round" d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        </button>
+        <a class="btn btn--primary btn--sm" href="/auth/register">Daftar Sekarang</a>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  {% if wpPage and wpPage.content %}
+  <section class="wp-homepage-content" aria-label="Konten halaman utama">
+    <div class="container">{{ wpPage.content | safe }}</div>
+  </section>
+  {% endif %}
+
+  <!-- ═══════════════════════════════════════════════════
+       HERO
+       ═══════════════════════════════════════════════════ -->
+  <section class="hero" id="hero" aria-labelledby="hero-title" {% if wpPage and wpPage.content %}style="display:none;" aria-hidden="true"{% endif %}>
+    <div class="container hero__inner">
+
+      <div class="hero__copy" data-reveal>
+        <p class="hero__eyebrow">Beasiswa Penuh · Angkatan 2026/2027</p>
+        <h1 class="hero__title" id="hero-title">
+          Prestasimu layak<br><em>dibiayai</em> sampai lulus.
+        </h1>
+        <p class="hero__lead">
+          ISF menanggung biaya kuliah, tunjangan hidup, dan pendampingan mentor bagi mahasiswa berprestasi di seluruh Indonesia.
+        </p>
+        <div class="hero__actions">
+          <a class="btn btn--gold btn--lg" href="/auth/register">Daftar Gratis</a>
+          <a class="btn btn--ghost btn--lg" href="#tentang">Pelajari Program</a>
+        </div>
+        <div class="hero__trust">
+          <span class="hero__trust-item">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
+            Pendaftaran gratis
+          </span>
+          <span class="hero__trust-item">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Proses ~40 menit
+          </span>
+          <span class="hero__trust-item">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+            150 kursi tersedia
+          </span>
+        </div>
+      </div>
+
+      <div class="hero__visual" data-reveal>
+        <figure class="arch">
+          <img
+            class="arch__img"
+            src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=900&q=80"
+            alt="Wisudawan melempar toga saat matahari terbenam."
+            width="900" height="1200"
+            loading="eager" fetchpriority="high">
+        </figure>
+        <div class="seal" aria-hidden="true">
+          <svg viewBox="0 0 200 200" class="seal__ring">
+            <defs>
+              <path id="seal-path" d="M100,100 m-72,0 a72,72 0 1,1 144,0 a72,72 0 1,1 -144,0"/>
+            </defs>
+            <text class="seal__text">
+              <textPath href="#seal-path">INTELLIGENTSIA SCHOLARSHIP FUND · SEJAK 2026 ·</textPath>
+            </text>
+          </svg>
+          <span class="seal__core">I</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════
+       TENTANG ISF
+       ═══════════════════════════════════════════════════ -->
+  <section class="section" id="tentang" aria-labelledby="tentang-title">
+    <div class="container about">
+      <div class="about__media" data-reveal>
+        <img
+          src="https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?auto=format&fit=crop&w=800&q=80"
+          alt="Mahasiswa membaca di perpustakaan."
+          width="800" height="534" loading="lazy">
+      </div>
+      <div class="about__copy" data-reveal>
+        <p class="eyebrow">Tentang ISF</p>
+        <h2 class="section-title" id="tentang-title">Untuk mahasiswa yang sudah membuktikan diri.</h2>
+        <p>
+          Setiap tahun, ribuan mahasiswa berprestasi terancam berhenti kuliah bukan karena kemampuan, melainkan karena biaya. ISF hadir untuk memastikan <strong>prestasi—bukan kondisi ekonomi</strong>—yang menentukan seberapa jauh mereka bisa melangkah.
+        </p>
+        <p>
+          Terbuka untuk mahasiswa aktif S1/D4 semester 2–6 di perguruan tinggi terakreditasi, dengan IPK ≥ 3,50 atau prestasi non-akademik tingkat nasional.
+        </p>
+
+        <div class="about-stats" id="program">
+          <div class="about-stat">
+            <div class="about-stat__value">150</div>
+            <div class="about-stat__label">Kursi tersedia</div>
+          </div>
+          <div class="about-stat">
+            <div class="about-stat__value">S/D lulus</div>
+            <div class="about-stat__label">Durasi program</div>
+          </div>
+          <div class="about-stat">
+            <div class="about-stat__value">100%</div>
+            <div class="about-stat__label">Biaya kuliah ditanggung</div>
+          </div>
+        </div>
+
+        <div style="margin-top:2rem;">
+          <a class="btn btn--primary" href="/auth/register">Daftar Sekarang</a>
+          <a class="btn btn--ghost" href="#informasi" style="margin-left:0.75rem;">Syarat &amp; Ketentuan</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════
+       MANFAAT PROGRAM
+       ═══════════════════════════════════════════════════ -->
+  <section class="section section--sage" id="manfaat" aria-labelledby="manfaat-title">
+    <div class="container">
+      <div class="section-head" data-reveal>
+        <p class="eyebrow">Apa yang Kamu Dapatkan</p>
+        <h2 class="section-title" id="manfaat-title">Lebih dari sekadar beasiswa biaya kuliah.</h2>
+        <p class="section-lead">Program ISF memberikan ekosistem dukungan menyeluruh untuk mendorong prestasi akademik dan karier jangka panjang.</p>
+      </div>
+      <div class="values">
+        <article class="value" data-reveal>
+          <div class="value__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l9-5 9 5-9 5-9-5z"/><path d="M7 12v4c0 1.5 2.5 3 5 3s5-1.5 5-3v-4"/><path d="M21 10v5"/></svg>
+          </div>
+          <h3 class="value__title">Pendanaan penuh</h3>
+          <p class="value__desc">UKT dibayar langsung ke kampus, tunjangan hidup Rp1,5 juta/bulan, dan dana buku Rp2 juta/tahun.</p>
+        </article>
+        <article class="value" data-reveal>
+          <div class="value__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5"/><circle cx="17.5" cy="9.5" r="2.5"/><path d="M15.5 14.5c3 0 6 2 6 5.5"/></svg>
+          </div>
+          <h3 class="value__title">Mentor &amp; jaringan</h3>
+          <p class="value__desc">Satu mentor profesional di bidangmu, plus komunitas alumni aktif dari seluruh Indonesia.</p>
+        </article>
+        <article class="value" data-reveal>
+          <div class="value__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16"/><path d="M6 19V9l5-3 5 3v10"/><path d="M14 8l4-2v13"/></svg>
+          </div>
+          <h3 class="value__title">Jalur karier</h3>
+          <p class="value__desc">Magang berbayar di perusahaan mitra, pelatihan kepemimpinan, dan rekomendasi beasiswa pascasarjana.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════
+       KONTRIBUSI
+       ═══════════════════════════════════════════════════ -->
+  <section id="program-kontribusi" aria-labelledby="kontribusi-title">
+    <div class="contrib-intro">
+      <div class="container" data-reveal>
+        <p class="eyebrow">Program ISF</p>
+        <h2 class="section-title" id="kontribusi-title">Dukungan untuk setiap tahap perjalananmu.</h2>
+        <p class="section-lead">Dari beasiswa penuh hingga pembiayaan pendidikan—ISF mendukung mahasiswa di berbagai kebutuhan akademik.</p>
+      </div>
+    </div>
+    <div class="contrib-cards-wrap">
+      <div class="container">
+        <div class="contrib-cards">
+          <div class="contrib-card" data-reveal>
+            <div class="contrib-card__icon">
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342"/></svg>
+            </div>
+            <h3 class="contrib-card__title">Beasiswa Penuh</h3>
+            <p class="contrib-card__desc">UKT, tunjangan hidup, dan dana buku bagi mahasiswa berprestasi yang membutuhkan dukungan finansial.</p>
+          </div>
+          <div class="contrib-card contrib-card--blue" data-reveal>
+            <div class="contrib-card__icon">
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/></svg>
+            </div>
+            <h3 class="contrib-card__title">Pembiayaan Pendidikan</h3>
+            <p class="contrib-card__desc">Skema pinjaman lunak dengan pengembalian pasca-studi. Dana langsung ke rekening perguruan tinggi.</p>
+          </div>
+          <div class="contrib-card" data-reveal>
+            <div class="contrib-card__icon">
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+            </div>
+            <h3 class="contrib-card__title">Dukungan Conference</h3>
+            <p class="contrib-card__desc">Dana partisipasi konferensi ilmiah nasional/internasional bagi penerima yang memiliki paper diterima.</p>
+          </div>
+          <div class="contrib-card contrib-card--blue" data-reveal>
+            <div class="contrib-card__icon">
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+            </div>
+            <h3 class="contrib-card__title">Skripsi &amp; Tesis</h3>
+            <p class="contrib-card__desc">Dana penelitian tugas akhir S1 dan S2, termasuk biaya survei, pengolahan data, dan publikasi jurnal.</p>
+          </div>
+          <div class="contrib-card" data-reveal>
+            <div class="contrib-card__icon">
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/></svg>
+            </div>
+            <h3 class="contrib-card__title">Disertasi S3</h3>
+            <p class="contrib-card__desc">Dukungan khusus doktoral: biaya penelitian, residensi, dan partisipasi konferensi internasional.</p>
+          </div>
+          <div class="contrib-card contrib-card--blue" data-reveal>
+            <div class="contrib-card__icon">
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/></svg>
+            </div>
+            <h3 class="contrib-card__title">Dukung via Donasi</h3>
+            <p class="contrib-card__desc">Berkontribusi langsung melalui kampanye aktif. Setiap donasi disalurkan kepada penerima beasiswa terverifikasi.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════
+       DONASI / FUNDRAISING
+       ═══════════════════════════════════════════════════ -->
+  <section class="section section--sage" id="fundraising" aria-labelledby="fundraising-title">
+    <div class="container">
+      <div class="section-head" data-reveal>
+        <p class="eyebrow">Kampanye Aktif</p>
+        <h2 class="section-title" id="fundraising-title">Setiap donasi mengubah satu nasib.</h2>
+        <p class="section-lead">Dana disalurkan langsung kepada penerima aktif melalui mekanisme transparan dan terverifikasi setiap semester.</p>
+      </div>
+
+      <div class="fundraising-layout">
+        <div class="fundraising-campaigns">
+          {% if campaigns and campaigns.length > 0 %}
+          <div class="campaign-cards-list">
+            {% for campaign in campaigns %}
+            <article class="campaign-home-card" data-reveal>
+              {% if campaign.coverImageUrl %}
+              <div class="campaign-home-card__img">
+                <img src="{{ campaign.coverImageUrl }}" alt="{{ campaign.title }}" loading="lazy">
+              </div>
+              {% else %}
+              <div class="campaign-home-card__img campaign-home-card__img--placeholder">
+                <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2" style="color:var(--hp-accent)"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/></svg>
+              </div>
+              {% endif %}
+              <div class="campaign-home-card__body">
+                <span class="campaign-status-badge campaign-status-badge--{{ campaign.status | lower }}">
+                  {% if campaign.status === 'ACTIVE' %}Aktif{% elif campaign.status === 'COMPLETED' %}Selesai{% else %}{{ campaign.status }}{% endif %}
+                </span>
+                <h3 class="campaign-home-card__title">
+                  <a href="/fundraising/{{ campaign.slug }}">{{ campaign.title }}</a>
+                </h3>
+                <p class="campaign-home-card__beneficiary">Untuk: {{ campaign.beneficiary }}</p>
+                <div class="campaign-home-card__progress">
+                  {% set goalAmount = campaign.goalAmount | float %}
+                  {% set totalRaised = campaign.totalRaised | float %}
+                  {% set pct = (totalRaised / goalAmount * 100) if goalAmount > 0 else 0 %}
+                  {% set pct = 100 if pct > 100 else pct %}
+                  <div class="home-progress-bar" role="progressbar" aria-valuenow="{{ pct | round }}" aria-valuemin="0" aria-valuemax="100">
+                    <div class="home-progress-bar__fill" style="width:{{ pct | round }}%"></div>
+                  </div>
+                  <div class="home-progress-stats">
+                    <div>
+                      <span class="home-progress-raised">Rp {{ campaign.totalRaised | int | string }}</span>
+                      <span class="home-progress-label"> terkumpul</span>
+                    </div>
+                    <span class="home-progress-pct">{{ pct | round }}%</span>
+                  </div>
+                  <div class="home-progress-goal">dari target <strong>Rp {{ campaign.goalAmount | int | string }}</strong></div>
+                </div>
+                <div class="campaign-home-card__actions">
+                  <a href="/fundraising/{{ campaign.slug }}" class="btn btn--primary btn--sm">Donasi Sekarang</a>
+                  <a href="/fundraising/{{ campaign.slug }}" class="btn btn--ghost btn--sm">Detail Kampanye</a>
+                </div>
+              </div>
+            </article>
+            {% endfor %}
+          </div>
+          <div style="margin-top:1.5rem;">
+            <a href="/fundraising" class="btn btn--ghost">Lihat Semua Kampanye →</a>
+          </div>
+          {% else %}
+          <div class="campaigns-placeholder" data-reveal>
+            <div class="campaigns-placeholder__inner">
+              <div class="campaigns-placeholder__icon" aria-hidden="true">
+                <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/></svg>
+              </div>
+              <h3>Kampanye Segera Hadir</h3>
+              <p>Kampanye penggalangan dana akan segera dibuka.</p>
+              <a href="/fundraising" class="btn btn--ghost btn--sm">Pantau Kampanye</a>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+        <aside class="fundraising-info" aria-label="Informasi donasi" data-reveal>
+          <div class="fundraising-info__card">
+            <p class="fundraising-info__label">Mengapa Berdonasi?</p>
+            <h3 class="fundraising-info__title">Dana Anda menjangkau mahasiswa yang tidak punya jalan lain</h3>
+            <div class="fundraising-info__points">
+              <div class="fundraising-info__point">
+                <span class="fundraising-info__point-icon" aria-hidden="true">
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342"/></svg>
+                </span>
+                <div>
+                  <strong>Untuk apa dana digunakan?</strong>
+                  <p>UKT, tunjangan hidup, dana buku, dan biaya tugas akhir penerima aktif.</p>
+                </div>
+              </div>
+              <div class="fundraising-info__point">
+                <span class="fundraising-info__point-icon" aria-hidden="true">
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
+                </span>
+                <div>
+                  <strong>Transparansi penuh</strong>
+                  <p>Laporan penggunaan dana diterbitkan setiap semester, dapat diakses oleh semua donatur.</p>
+                </div>
+              </div>
+            </div>
+            <a href="/fundraising" class="btn btn--gold btn--sm" style="width:100%;justify-content:center;margin-top:0.25rem;">Lihat Semua Kampanye</a>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════
+       TESTIMONI
+       ═══════════════════════════════════════════════════ -->
+  <section class="quote-section" aria-label="Kutipan alumni">
+    <div class="container">
+      <figure class="quote" data-reveal>
+        <blockquote class="quote__text">
+          <p>"Saya sudah menyusun surat cuti kuliah ketika email penerimaan ISF masuk. Dua tahun kemudian, saya lulus cum laude dan sudah punya pekerjaan sebelum wisuda."</p>
+        </blockquote>
+        <figcaption class="quote__cite">
+          <span class="quote__name">Nadia Rahmawati</span>
+          <span class="quote__role">Penerima ISF · Teknik Informatika, Universitas Diponegoro</span>
+        </figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════
+       BLOG & BERITA
+       ═══════════════════════════════════════════════════ -->
+  <section class="section section--blog" id="berita" aria-labelledby="berita-title">
+    <div class="container">
+      <div class="blog-section-head" data-reveal>
+        <div>
+          <p class="eyebrow">Blog &amp; Berita</p>
+          <h2 class="section-title" id="berita-title">Cerita dari komunitas ISF.</h2>
+          <p class="section-lead">Pengumuman beasiswa, cerita penerima, dan panduan pendidikan dari tim ISF.</p>
+        </div>
+        <div class="blog-section-head__nav">
+          <a href="/blog" class="blog-cat-pill blog-cat-pill--active">Semua</a>
+          <a href="/blog" class="blog-cat-pill">Berita ISF</a>
+          <a href="/blog" class="blog-cat-pill">Beasiswa</a>
+          <a href="/blog" class="blog-cat-pill">Cerita Penerima</a>
+        </div>
+      </div>
+
+      {% if articles and articles.length > 0 %}
+      <div class="blog-editorial-grid">
+        <article class="blog-featured" data-reveal>
+          {% if articles[0].coverImageUrl %}
+          <div class="blog-featured__img">
+            <img src="{{ articles[0].coverImageUrl }}" alt="{{ articles[0].title }}" loading="lazy">
+          </div>
+          {% else %}
+          <div class="blog-featured__img blog-featured__img--placeholder" style="min-height:14rem;display:flex;align-items:center;justify-content:center;">
+            <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1" style="color:var(--hp-accent);opacity:0.4"><path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z"/></svg>
+          </div>
+          {% endif %}
+          <div class="blog-featured__body">
+            {% if articles[0].categories and articles[0].categories.length > 0 %}
+            <span class="blog-cat-tag">{{ articles[0].categories[0].name }}</span>
+            {% endif %}
+            <h3 class="blog-featured__title">
+              <a href="/blog/{{ articles[0].slug }}">{{ articles[0].title }}</a>
+            </h3>
+            {% if articles[0].summary %}
+            <p class="blog-featured__summary">{{ articles[0].summary | truncate(140) }}</p>
+            {% endif %}
+            <div class="blog-featured__meta">
+              <span>{{ articles[0].publishedAt | string | truncate(10, true, '') if articles[0].publishedAt else 'Baru-baru ini' }}</span>
+            </div>
+            <a href="/blog/{{ articles[0].slug }}" class="btn btn--primary btn--sm" style="margin-top:1.25rem;">Baca Selengkapnya →</a>
+          </div>
+        </article>
+
+        <div class="blog-recent">
+          <h3 class="blog-recent__heading">Artikel Terbaru</h3>
+          <div class="blog-recent__list">
+            {% for article in articles %}
+            {% if loop.index > 1 and loop.index <= 4 %}
+            <article class="blog-recent__item" data-reveal>
+              {% if article.coverImageUrl %}
+              <div class="blog-recent__thumb">
+                <img src="{{ article.coverImageUrl }}" alt="{{ article.title }}" loading="lazy">
+              </div>
+              {% endif %}
+              <div class="blog-recent__content">
+                {% if article.categories and article.categories.length > 0 %}
+                <span class="blog-cat-tag blog-cat-tag--sm">{{ article.categories[0].name }}</span>
+                {% endif %}
+                <h4 class="blog-recent__title">
+                  <a href="/blog/{{ article.slug }}">{{ article.title }}</a>
+                </h4>
+                <time class="blog-recent__date">{{ article.publishedAt | string | truncate(10, true, '') if article.publishedAt else '' }}</time>
+              </div>
+            </article>
+            {% endif %}
+            {% endfor %}
+          </div>
+          <a href="/blog" class="btn btn--ghost btn--sm" style="margin-top:1.5rem;">Semua Artikel →</a>
+        </div>
+      </div>
+
+      {% else %}
+      <div class="blog-empty-state" data-reveal>
+        <div class="blog-empty-state__inner">
+          <div class="blog-empty-state__icon" aria-hidden="true">
+            <svg width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z"/></svg>
+          </div>
+          <h3>Artikel Segera Hadir</h3>
+          <p>Tim ISF sedang mempersiapkan konten terbaik untuk Anda.</p>
+          <a href="/blog" class="btn btn--ghost btn--sm">Kunjungi Blog</a>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════
+       JADWAL SELEKSI
+       ═══════════════════════════════════════════════════ -->
+  <section class="section section--cream" id="jadwal" aria-labelledby="jadwal-title">
+    <div class="container">
+      <div class="section-head" data-reveal>
+        <p class="eyebrow">Jadwal Seleksi</p>
+        <h2 class="section-title" id="jadwal-title">Lima tahap, empat bulan.</h2>
+        <p class="section-lead">Seluruh proses berjalan daring. Wawancara akhir bisa dipilih daring atau luring.</p>
+      </div>
+      <ol class="timeline" data-reveal>
+        <li class="timeline__item">
+          <time class="timeline__date" datetime="2026-12-01">1 Des 2026 – 31 Jan 2027</time>
+          <h3 class="timeline__title">Pendaftaran</h3>
+          <p class="timeline__desc">Isi formulir dan unggah berkas melalui portal.</p>
+        </li>
+        <li class="timeline__item">
+          <time class="timeline__date" datetime="2027-02-01">1 – 20 Feb 2027</time>
+          <h3 class="timeline__title">Seleksi berkas</h3>
+          <p class="timeline__desc">Verifikasi dokumen dan penilaian esai.</p>
+        </li>
+        <li class="timeline__item">
+          <time class="timeline__date" datetime="2027-03-01">1 – 20 Mar 2027</time>
+          <h3 class="timeline__title">Wawancara</h3>
+          <p class="timeline__desc">Sesi 30 menit dengan dua pewawancara.</p>
+        </li>
+        <li class="timeline__item">
+          <time class="timeline__date" datetime="2027-03-31">31 Mar 2027</time>
+          <h3 class="timeline__title">Pengumuman</h3>
+          <p class="timeline__desc">Hasil dikirim via email dan portal.</p>
+        </li>
+        <li class="timeline__item">
+          <time class="timeline__date" datetime="2027-04-10">10 – 12 Apr 2027</time>
+          <h3 class="timeline__title">Orientasi</h3>
+          <p class="timeline__desc">Pertemuan perdana penerima dan mentor.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════
+       CARA PEMBIAYAAN
+       ═══════════════════════════════════════════════════ -->
+  <section class="section" id="cara-daftar" aria-labelledby="cara-title">
+    <div class="container">
+      <div class="section-head" data-reveal>
+        <p class="eyebrow">Cara Mendaftar</p>
+        <h2 class="section-title" id="cara-title">Dua jalur, satu tujuan.</h2>
+        <p class="section-lead">Pilih jalur yang sesuai. Semua proses dilakukan daring melalui portal ISF.</p>
+      </div>
+
+      <div class="pembiayaan-tracks">
+
+        <div class="pembiayaan-track pembiayaan-track--scholarship" data-reveal>
+          <div class="pembiayaan-track__header">
+            <span class="pembiayaan-track__badge pembiayaan-track__badge--green" aria-hidden="true">
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342"/></svg>
+            </span>
+            <div>
+              <div class="pembiayaan-track__jalur">Jalur 1 · Gratis</div>
+              <h3 class="pembiayaan-track__name">Beasiswa Penuh</h3>
+            </div>
+          </div>
+          <ol class="steps">
+            <li class="step"><span class="step__num" aria-hidden="true">1</span><div><h3 class="step__title">Buat akun portal</h3><p class="step__desc">Daftar dengan email kampus aktif.</p></div></li>
+            <li class="step"><span class="step__num" aria-hidden="true">2</span><div><h3 class="step__title">Lengkapi profil mahasiswa</h3><p class="step__desc">Data diri, institusi, dan IPK terkini.</p></div></li>
+            <li class="step"><span class="step__num" aria-hidden="true">3</span><div><h3 class="step__title">Unggah berkas pendukung</h3><p class="step__desc">KTM, transkrip, surat aktif, dan bukti prestasi.</p></div></li>
+            <li class="step"><span class="step__num" aria-hidden="true">4</span><div><h3 class="step__title">Tulis esai motivasi</h3><p class="step__desc">600 kata tentang tujuan akademik dan dampak yang ingin dibuat.</p></div></li>
+            <li class="step"><span class="step__num" aria-hidden="true">5</span><div><h3 class="step__title">Kirim lamaran</h3><p class="step__desc">Pastikan semua berkas lengkap sebelum submit.</p></div></li>
+            <li class="step"><span class="step__num" aria-hidden="true">6</span><div><h3 class="step__title">Wawancara &amp; pengumuman</h3><p class="step__desc">Sesi 30 menit. Hasil dikirim paling lambat 31 Mar 2027.</p></div></li>
+          </ol>
+          <div style="margin-top:1.75rem;">
+            <a class="btn btn--primary btn--sm" href="/auth/register">Daftar Beasiswa</a>
+          </div>
+        </div>
+
+        <div class="pembiayaan-track pembiayaan-track--loan" data-reveal>
+          <div class="pembiayaan-track__header">
+            <span class="pembiayaan-track__badge pembiayaan-track__badge--blue" aria-hidden="true">
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/></svg>
+            </span>
+            <div>
+              <div class="pembiayaan-track__jalur">Jalur 2 · Ada kewajiban pengembalian</div>
+              <h3 class="pembiayaan-track__name">Pembiayaan Pendidikan</h3>
+            </div>
+          </div>
+          <div class="pembiayaan-notice">
+            <strong>Penting:</strong> Ini adalah pinjaman lunak. Cicilan dimulai 6 bulan setelah wisuda.
+          </div>
+          <ol class="steps">
+            <li class="step"><span class="step__num" aria-hidden="true">1</span><div><h3 class="step__title">Buat akun portal</h3><p class="step__desc">Gunakan email aktif. Satu akun untuk semua layanan ISF.</p></div></li>
+            <li class="step"><span class="step__num" aria-hidden="true">2</span><div><h3 class="step__title">Lengkapi profil &amp; berkas</h3><p class="step__desc">KTM, transkrip, kartu keluarga, surat penghasilan orang tua/wali.</p></div></li>
+            <li class="step"><span class="step__num" aria-hidden="true">3</span><div><h3 class="step__title">Ajukan permohonan</h3><p class="step__desc">Tentukan jumlah yang dibutuhkan dan periode pembayaran.</p></div></li>
+            <li class="step"><span class="step__num" aria-hidden="true">4</span><div><h3 class="step__title">Verifikasi &amp; perjanjian</h3><p class="step__desc">Tim ISF memverifikasi kelayakan, lalu penandatanganan digital.</p></div></li>
+            <li class="step"><span class="step__num" aria-hidden="true">5</span><div><h3 class="step__title">Pencairan dana</h3><p class="step__desc">Dana langsung ke rekening perguruan tinggi (UKT).</p></div></li>
+            <li class="step"><span class="step__num" aria-hidden="true">6</span><div><h3 class="step__title">Cicilan pasca-studi</h3><p class="step__desc">Cicilan dimulai 6 bulan setelah lulus, disesuaikan penghasilan.</p></div></li>
+          </ol>
+          <div style="margin-top:1.75rem;">
+            <a class="btn btn--blue btn--sm" href="/auth/register">Ajukan Pembiayaan</a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════
+       INFORMASI & FAQ
+       ═══════════════════════════════════════════════════ -->
+  <section class="section section--cream" id="informasi" aria-labelledby="info-title">
+    <div class="container">
+      <div class="section-head" data-reveal>
+        <p class="eyebrow">Persyaratan &amp; FAQ</p>
+        <h2 class="section-title" id="info-title">Semua yang perlu kamu tahu.</h2>
+      </div>
+
+      <div class="info-grid">
+        <div class="info-card" data-reveal>
+          <h3 class="info-card__title">Persyaratan</h3>
+          <ul class="check-list">
+            <li>Warga Negara Indonesia</li>
+            <li>Mahasiswa aktif S1/D4 semester 2–6</li>
+            <li>IPK ≥ 3,50, atau prestasi nasional/internasional</li>
+            <li>Tidak sedang menerima beasiswa penuh lain</li>
+            <li>Bersedia mengikuti program mentoring dan pelaporan semester</li>
+          </ul>
+        </div>
+        <div class="info-card" data-reveal>
+          <h3 class="info-card__title">Cakupan Dana</h3>
+          <ul class="check-list">
+            <li>UKT penuh hingga semester 8</li>
+            <li>Tunjangan hidup Rp1.500.000/bulan</li>
+            <li>Dana buku dan riset Rp2.000.000/tahun</li>
+            <li>Laptop kerja bagi yang membutuhkan</li>
+            <li>Dana tugas akhir Rp3.000.000, satu kali</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="faq" data-reveal>
+        <h3 class="faq__title">Pertanyaan Umum</h3>
+        <div class="accordion" data-accordion>
+          <div class="accordion__item">
+            <h4><button class="accordion__trigger" type="button" aria-expanded="false" aria-controls="faq-1" id="faq-1-btn">Apakah ada ikatan dinas setelah lulus?<span class="accordion__icon" aria-hidden="true"></span></button></h4>
+            <div class="accordion__panel" id="faq-1" role="region" aria-labelledby="faq-1-btn" hidden>
+              <p>Tidak ada. Kami hanya meminta penerima tetap terhubung dengan komunitas alumni dan, jika berkenan, menjadi mentor bagi angkatan berikutnya.</p>
+            </div>
+          </div>
+          <div class="accordion__item">
+            <h4><button class="accordion__trigger" type="button" aria-expanded="false" aria-controls="faq-2" id="faq-2-btn">Bagaimana jika IPK saya di bawah 3,50?<span class="accordion__icon" aria-hidden="true"></span></button></h4>
+            <div class="accordion__panel" id="faq-2" role="region" aria-labelledby="faq-2-btn" hidden>
+              <p>Kamu tetap bisa mendaftar lewat jalur prestasi non-akademik, misalnya juara lomba nasional atau publikasi ilmiah. Lampirkan buktinya di bagian prestasi.</p>
+            </div>
+          </div>
+          <div class="accordion__item">
+            <h4><button class="accordion__trigger" type="button" aria-expanded="false" aria-controls="faq-3" id="faq-3-btn">Apakah beasiswa bisa dicabut?<span class="accordion__icon" aria-hidden="true"></span></button></h4>
+            <div class="accordion__panel" id="faq-3" role="region" aria-labelledby="faq-3-btn" hidden>
+              <p>Beasiswa ditinjau setiap semester. Penerima perlu menjaga IPK minimal 3,25 dan mengirim laporan singkat. Jika ada kendala, hubungi mentor—kami selalu mencari jalan bersama.</p>
+            </div>
+          </div>
+          <div class="accordion__item">
+            <h4><button class="accordion__trigger" type="button" aria-expanded="false" aria-controls="faq-4" id="faq-4-btn">Berapa lama proses seleksinya?<span class="accordion__icon" aria-hidden="true"></span></button></h4>
+            <div class="accordion__panel" id="faq-4" role="region" aria-labelledby="faq-4-btn" hidden>
+              <p>Sekitar dua bulan sejak pendaftaran ditutup. Semua pendaftar menerima kabar, baik diterima maupun tidak, paling lambat 31 Maret 2027.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════
+       CTA
+       ═══════════════════════════════════════════════════ -->
+  <section class="cta" id="daftar" aria-labelledby="cta-title">
+    <div class="container cta__inner" data-reveal>
+      <div>
+        <p class="eyebrow">Gelombang 1 · 2026/2027</p>
+        <h2 class="cta__title" id="cta-title">Berkasmu bisa masuk hari ini.</h2>
+        <p class="cta__lead">Pendaftaran gratis dan memakan waktu sekitar 40 menit jika dokumen sudah siap. Tidak ada biaya tersembunyi.</p>
+        <div class="cta__trust">
+          <span>✓ 150 kursi tersedia</span>
+          <span>✓ Proses 100% online</span>
+          <span>✓ Tidak ada ikatan dinas</span>
+        </div>
+      </div>
+      <div class="cta__actions">
+        <a class="btn btn--gold btn--lg" href="/auth/register">Buka Portal Pendaftaran</a>
+        <a class="btn btn--ghost" href="mailto:halo@intelegensia.id">Tanya lewat Email</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- FOOTER -->
+<footer class="site-footer">
+  <div class="container site-footer__inner">
+    <div class="site-footer__brand">
+      <a class="brand" href="/">
+        <span class="brand__mark" aria-hidden="true">I</span>
+        <span class="brand__text">INTELLIGENTSIA<span class="brand__sub">Scholarship Fund</span></span>
+      </a>
+      <p class="site-footer__desc">Yayasan Intelegensia Nusantara<br>Jl. Cikini Raya No. 12, Jakarta Pusat 10330</p>
+    </div>
+    <div class="site-footer__col">
+      <h3>Kontak</h3>
+      <ul>
+        <li><a href="mailto:halo@intelegensia.id">halo@intelegensia.id</a></li>
+        <li><a href="https://wa.me/6281234567890" rel="noopener">WhatsApp</a></li>
+      </ul>
+    </div>
+    <div class="site-footer__col">
+      <h3>Media Sosial</h3>
+      <ul>
+        <li><a href="#" rel="noopener">Instagram</a></li>
+        <li><a href="#" rel="noopener">LinkedIn</a></li>
+        <li><a href="#" rel="noopener">YouTube</a></li>
+      </ul>
+    </div>
+    <div class="site-footer__col">
+      <h3>Navigasi</h3>
+      <ul>
+        <li><a href="#tentang">Tentang ISF</a></li>
+        <li><a href="#program">Program</a></li>
+        <li><a href="/fundraising">Donasi</a></li>
+        <li><a href="/blog">Blog</a></li>
+        <li><a href="#cara-daftar">Cara Daftar</a></li>
+      </ul>
+    </div>
+    <div class="site-footer__col">
+      <h3>Portal</h3>
+      <ul>
+        <li><a href="/auth/login">Masuk</a></li>
+        <li><a href="/auth/register">Daftar Beasiswa</a></li>
+        <li><a href="#informasi">Kebijakan Privasi</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="container site-footer__bottom">
+    <p>© {{ year }} Yayasan Intelegensia Nusantara. Foto oleh Vasily Koloda dan Redd F via Unsplash.</p>
+  </div>
+</footer>
+
+<script src="/js/main.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,158 @@
+{% extends "layouts/portal.njk" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block breadcrumb %}
+  <a href="/portal" class="portal-topbar__breadcrumb a">Member Portal</a>
+  <span class="portal-topbar__breadcrumb__sep" aria-hidden="true">›</span>
+  <a href="/portal/content" class="portal-topbar__breadcrumb a">Konten Saya</a>
+  <span class="portal-topbar__breadcrumb__sep" aria-hidden="true">›</span>
+  <span class="portal-topbar__breadcrumb__current">{{ article.title | truncate(40) }}</span>
+{% endblock %}
+
+{% block body %}
+
+<div class="portal-page-header">
+  <div>
+    <h1 class="portal-page-title">{{ article.title }}</h1>
+    <p class="portal-page-lead" style="display:flex;align-items:center;gap:var(--p-sp-3);flex-wrap:wrap;">
+      <span class="p-badge p-badge--{{ article.status | lower | replace('_', '-') }}">
+        {{ article.status | replace('_', ' ') }}
+      </span>
+      <span class="p-text-muted p-text-sm">
+        Diajukan: {{ article.createdAt | string | truncate(10, true, '') if article.createdAt else '—' }}
+      </span>
+    </p>
+  </div>
+  <div style="display:flex;gap:var(--p-sp-3);flex-wrap:wrap;">
+    {% if canEdit %}
+      <a href="/portal/content/{{ article.id }}/edit" class="p-btn p-btn--secondary p-btn--sm">Edit Draf</a>
+    {% endif %}
+    {% if canView %}
+      <a href="/blog/{{ article.slug }}" class="p-btn p-btn--primary p-btn--sm" target="_blank" rel="noopener">Lihat di Blog</a>
+    {% endif %}
+  </div>
+</div>
+
+{# Workflow steps #}
+<div class="p-workflow" aria-label="Tahapan pengajuan">
+  {% set statuses = ['DRAFT', 'IN_REVIEW', 'APPROVED', 'PUBLISHED'] %}
+  {% for s in statuses %}
+  {% if article.status === s %}
+    {% set stepClass = 'p-workflow-step--current' %}
+  {% elif loop.index < loop.length %}
+    {% set stepClass = 'p-workflow-step--done' %}
+  {% else %}
+    {% set stepClass = '' %}
+  {% endif %}
+  <div class="p-workflow-step {{ stepClass }}">{{ s | replace('_', ' ') }}</div>
+  {% if not loop.last %}
+  <div class="p-workflow-arrow" aria-hidden="true">→</div>
+  {% endif %}
+  {% endfor %}
+</div>
+
+{# Revision notice #}
+{% if article.status === 'CHANGES_REQUESTED' and article.reviewerNotes %}
+<div class="p-alert p-alert--warning" role="alert">
+  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true" flex-shrink="0"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125"/></svg>
+  <div>
+    <strong>Revisi Diperlukan</strong><br>
+    {{ article.reviewerNotes | escape }}
+  </div>
+</div>
+{% endif %}
+
+{# Submit for review #}
+{% if canSubmit %}
+<div class="p-section" style="margin-bottom:var(--p-sp-5);">
+  <h2 class="p-section__title">Kirim untuk Ditinjau</h2>
+  <p class="p-text-muted p-text-sm" style="margin-bottom:var(--p-sp-4);">
+    Setelah dikirimkan, konten tidak dapat diedit kembali sampai reviewer memberikan catatan revisi.
+  </p>
+  <div id="submitMsg" class="p-alert" style="display:none;margin-bottom:var(--p-sp-4);" role="alert"></div>
+  <button id="submitBtn" class="p-btn p-btn--primary">
+    <span id="submitBtnText">Kirim untuk Ditinjau</span>
+    <span class="spinner" id="submitSpinner" style="display:none;" aria-hidden="true"></span>
+  </button>
+</div>
+{% endif %}
+
+{# Article content #}
+<div class="p-section">
+  <h2 class="p-section__title">Ringkasan</h2>
+  <p style="color:var(--p-text);font-size:0.9rem;line-height:1.75;">{{ article.summary | escape }}</p>
+</div>
+
+{% if article.bodyHtml %}
+<div class="p-section">
+  <h2 class="p-section__title">Isi Konten</h2>
+  <div style="color:var(--p-text);font-size:0.95rem;line-height:1.8;">
+    {{ article.bodyHtml | safe }}
+  </div>
+</div>
+{% endif %}
+
+{% if article.coverImageUrl %}
+<div class="p-section">
+  <h2 class="p-section__title">Gambar Sampul</h2>
+  <img src="{{ article.coverImageUrl }}" alt="{{ article.title }}"
+       style="max-width:32rem;border-radius:var(--p-r-md);border:1px solid var(--p-border);">
+</div>
+{% endif %}
+
+<div style="margin-top:var(--p-sp-5);">
+  <a href="/portal/content" class="p-btn p-btn--ghost p-btn--sm">← Kembali ke Konten Saya</a>
+</div>
+
+<script>
+(function() {
+  'use strict';
+  var submitBtn = document.getElementById('submitBtn');
+  var submitMsg = document.getElementById('submitMsg');
+  var CSRF      = '{{ csrfToken }}';
+  var articleId = '{{ article.id | escape }}';
+
+  if (!submitBtn) return;
+
+  submitBtn.addEventListener('click', async function() {
+    var btnText = document.getElementById('submitBtnText');
+    var spinner = document.getElementById('submitSpinner');
+    submitBtn.disabled = true;
+    btnText.textContent = 'Mengirim…';
+    spinner.style.display = 'inline-block';
+    submitMsg.style.display = 'none';
+
+    try {
+      var res = await fetch('/portal/content/' + articleId + '/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': CSRF },
+        body: JSON.stringify({})
+      });
+      var data = await res.json();
+      if (!res.ok) {
+        submitMsg.className = 'p-alert p-alert--error';
+        submitMsg.textContent = data.error || 'Gagal mengirim.';
+        submitMsg.style.display = 'flex';
+        submitBtn.disabled = false;
+        btnText.textContent = 'Kirim untuk Ditinjau';
+        spinner.style.display = 'none';
+        return;
+      }
+      submitMsg.className = 'p-alert p-alert--success';
+      submitMsg.textContent = 'Berhasil dikirim untuk ditinjau!';
+      submitMsg.style.display = 'flex';
+      setTimeout(function() { window.location.reload(); }, 1200);
+    } catch(err) {
+      submitMsg.className = 'p-alert p-alert--error';
+      submitMsg.textContent = 'Terjadi kesalahan jaringan.';
+      submitMsg.style.display = 'flex';
+      submitBtn.disabled = false;
+      btnText.textContent = 'Kirim untuk Ditinjau';
+      spinner.style.display = 'none';
+    }
+  });
+})();
+</script>
+
+{% endblock %}

@@ -1,37 +1,18 @@
-{% extends "layouts/base.njk" %}
+{% extends "layouts/admin.njk" %}
 
 {% block title %}User Detail — ISF{% endblock %}
 
+{% block breadcrumb %}
+<a href="/owner">Owner Dashboard</a>
+<span class="admin-breadcrumb__sep">›</span>
+<a href="/owner/users">Users</a>
+<span class="admin-breadcrumb__sep">›</span>
+<span class="admin-breadcrumb__current">{{ targetUser.email | truncate(30) }}</span>
+{% endblock %}
+
 {% block body %}
-<div class="portal-page">
-  <header class="portal-header">
-    <a class="brand" href="/" aria-label="ISF home">
-      <span class="brand__mark" aria-hidden="true">I</span>
-      <span><span class="brand__name">ISF</span><span class="brand__sub">Intelegensia</span></span>
-    </a>
-    <div class="portal-header__actions">
-      <div class="portal-user">
-        <span class="portal-user__name">{{ displayName or userEmail }}</span>
-        <span class="portal-user__role" style="background:rgba(242,193,78,0.2);color:#F2C14E;border-color:rgba(242,193,78,0.5);">OWNER</span>
-      </div>
-      <form class="logout-form" method="POST" action="/auth/logout">
-        <input type="hidden" name="_csrf" value="{{ csrfToken }}">
-        <button class="btn btn--ghost btn--sm" type="submit">Sign out</button>
-      </form>
-    </div>
-  </header>
-
-  <nav class="portal-nav" aria-label="Owner navigation">
-    <ul class="portal-nav__list">
-      <li><a href="/owner">Owner Dashboard</a></li>
-      <li><a href="/owner/users">Users</a></li>
-      <li><a href="/owner/invitations">Invitations</a></li>
-    </ul>
-  </nav>
-
-  <main class="portal-main" id="main-content">
     <div style="margin-bottom:1.25rem;">
-      <a href="/owner/users" style="color:var(--cream-400);font-size:0.85rem;text-decoration:none;">&larr; Back to users</a>
+      <a href="/owner/users" style="color:var(--color-text-secondary);font-size:0.85rem;text-decoration:none;">&larr; Back to users</a>
     </div>
 
     {% if error %}
@@ -60,7 +41,7 @@
       </div>
       <div class="info-card">
         <p class="info-card__label">Status</p>
-        <p class="info-card__value">{% if targetUser.isActive %}Active{% else %}<span style="color:#f0b6b0;">Disabled</span>{% endif %}</p>
+        <p class="info-card__value">{% if targetUser.isActive %}<span style="color:var(--color-success-text);">Active</span>{% else %}<span style="color:var(--color-error-text);">Disabled</span>{% endif %}</p>
       </div>
       <div class="info-card">
         <p class="info-card__label">Email verified</p>
@@ -92,13 +73,13 @@
       <div class="info-card">
         <h2 style="font-family:var(--font-display);font-size:1rem;font-weight:500;margin-bottom:1rem;">Account Status</h2>
         {% if targetUser.isActive %}
-        <p style="color:var(--cream-400);font-size:0.85rem;margin-bottom:1rem;">Disabling prevents the user from logging in.</p>
+        <p style="color:var(--color-text-muted);font-size:0.85rem;margin-bottom:1rem;">Disabling prevents the user from logging in.</p>
         <form method="POST" action="/owner/users/{{ targetUser.id }}/disable">
           <input type="hidden" name="_csrf" value="{{ csrfToken }}">
           <button class="btn btn--ghost btn--sm btn--ghost--danger" type="submit" onclick="return confirm('Disable this account?')">Disable account</button>
         </form>
         {% else %}
-        <p style="color:var(--cream-400);font-size:0.85rem;margin-bottom:1rem;">Reactivating will restore login access.</p>
+        <p style="color:var(--color-text-muted);font-size:0.85rem;margin-bottom:1rem;">Reactivating will restore login access.</p>
         <form method="POST" action="/owner/users/{{ targetUser.id }}/reactivate">
           <input type="hidden" name="_csrf" value="{{ csrfToken }}">
           <button class="btn btn--primary btn--sm" type="submit">Reactivate account</button>
@@ -109,7 +90,7 @@
       <!-- Revoke sessions -->
       <div class="info-card">
         <h2 style="font-family:var(--font-display);font-size:1rem;font-weight:500;margin-bottom:1rem;">Sessions</h2>
-        <p style="color:var(--cream-400);font-size:0.85rem;margin-bottom:1rem;">Force the user to sign in again on all devices.</p>
+        <p style="color:var(--color-text-muted);font-size:0.85rem;margin-bottom:1rem;">Force the user to sign in again on all devices.</p>
         <form method="POST" action="/owner/users/{{ targetUser.id }}/revoke-sessions">
           <input type="hidden" name="_csrf" value="{{ csrfToken }}">
           <button class="btn btn--ghost btn--sm" type="submit">Revoke all sessions</button>
@@ -122,8 +103,4 @@
       The OWNER account is protected. Role, status, and sessions cannot be modified through this interface.
     </div>
     {% endif %}
-  </main>
-
-  <footer class="auth-footer">&copy; {{ year }} Intelligentsia Scholarship Fund. All rights reserved.</footer>
-</div>
 {% endblock %}

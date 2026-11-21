@@ -1,0 +1,205 @@
+{% extends "layouts/portal.njk" %}
+
+{% block title %}Unggah Bukti Pembayaran — ISF Member Portal{% endblock %}
+
+{% block breadcrumb %}
+  <a href="/portal" class="portal-topbar__breadcrumb a">Member Portal</a>
+  <span class="portal-topbar__breadcrumb__sep" aria-hidden="true">›</span>
+  <a href="/portal/scholarship/loans" class="portal-topbar__breadcrumb a">Pembiayaan</a>
+  <span class="portal-topbar__breadcrumb__sep" aria-hidden="true">›</span>
+  <span class="portal-topbar__breadcrumb__current">Unggah Bukti Pembayaran</span>
+{% endblock %}
+
+{% block body %}
+
+<div class="portal-page-header">
+  <div>
+    <h1 class="portal-page-title">Unggah Bukti Pembayaran</h1>
+    <p class="portal-page-lead">Unggah bukti transfer atau pembayaran cicilan untuk diverifikasi oleh admin ISF.</p>
+  </div>
+</div>
+
+{# Installment detail card #}
+{% if installment %}
+<div class="p-section" style="margin-bottom:var(--p-sp-5);">
+  <h2 class="p-section__title">Detail Cicilan</h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(10rem,1fr));gap:var(--p-sp-4);">
+    <div>
+      <div class="p-text-muted p-text-sm">Cicilan ke</div>
+      <div style="font-weight:600;font-size:1.1rem;color:var(--p-text);margin-top:0.2rem;">{{ installment.installmentNumber }}</div>
+    </div>
+    <div>
+      <div class="p-text-muted p-text-sm">Jatuh Tempo</div>
+      <div style="font-weight:600;color:var(--p-text);margin-top:0.2rem;">{{ installment.dueDate }}</div>
+    </div>
+    <div>
+      <div class="p-text-muted p-text-sm">Pokok</div>
+      <div class="p-mono" style="font-weight:600;color:var(--p-text);margin-top:0.2rem;">
+        Rp {{ installment.principalAmount | float | round(0) | string }}
+      </div>
+    </div>
+    <div>
+      <div class="p-text-muted p-text-sm">Sudah Dibayar</div>
+      <div class="p-mono" style="font-weight:600;color:var(--p-text);margin-top:0.2rem;">
+        Rp {{ installment.amountPaid | float | round(0) | string }}
+      </div>
+    </div>
+    <div>
+      <div class="p-text-muted p-text-sm">Status</div>
+      <div style="margin-top:0.2rem;">
+        <span class="p-badge p-badge--{{ installment.status | lower | replace('_', '-') }}">
+          {{ installment.status | replace('_', ' ') }}
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if error %}
+<div class="p-alert p-alert--error" role="alert">{{ error }}</div>
+{% endif %}
+
+<form id="paymentForm" enctype="multipart/form-data" novalidate style="max-width:36rem;">
+  <input type="hidden" name="_csrf" value="{{ csrfToken }}">
+
+  <div class="p-section">
+    <h2 class="p-section__title">Detail Pembayaran</h2>
+    <div class="p-form-grid">
+
+      <div class="p-form-group">
+        <label class="p-label" for="paymentDate">
+          Tanggal Pembayaran <span class="req" aria-label="wajib diisi">*</span>
+        </label>
+        <input type="date" id="paymentDate" name="paymentDate" class="p-input"
+               required max="{{ today }}">
+      </div>
+
+      <div class="p-form-group">
+        <label class="p-label" for="paymentAmount">
+          Nominal Pembayaran (Rp) <span class="req" aria-label="wajib diisi">*</span>
+        </label>
+        <input type="number" id="paymentAmount" name="paymentAmount" class="p-input"
+               required min="1" step="1"
+               placeholder="Contoh: 500000">
+      </div>
+
+      <div class="p-form-group">
+        <label class="p-label" for="paymentMethod">
+          Metode Pembayaran <span class="req" aria-label="wajib diisi">*</span>
+        </label>
+        <select id="paymentMethod" name="paymentMethod" class="p-select" required>
+          <option value="BANK_TRANSFER">Transfer Bank</option>
+          <option value="CASH">Tunai</option>
+          <option value="OTHER">Lainnya</option>
+        </select>
+      </div>
+
+      <div class="p-form-group">
+        <label class="p-label" for="referenceNumber">Nomor Referensi / Bukti Transfer</label>
+        <input type="text" id="referenceNumber" name="referenceNumber" class="p-input"
+               maxlength="100"
+               placeholder="Contoh: TF20240001">
+      </div>
+
+      <div class="p-form-group p-full-span">
+        <label class="p-label" for="notes">Catatan <span class="p-text-muted" style="font-weight:400;">(opsional)</span></label>
+        <textarea id="notes" name="notes" class="p-textarea" rows="2" maxlength="500"
+                  placeholder="Catatan tambahan untuk admin…"></textarea>
+      </div>
+
+      <div class="p-form-group p-full-span">
+        <label class="p-label" for="proof">
+          Bukti Pembayaran <span class="req" aria-label="wajib diisi">*</span>
+          <span class="p-hint" style="display:inline;font-weight:400;"> JPG, PNG, WebP, atau PDF — maks. 5 MB</span>
+        </label>
+        <input type="file" id="proof" name="proof" class="p-input" required
+               accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf"
+               aria-describedby="proofHint">
+        <div id="proofPreview" style="margin-top:var(--p-sp-3);display:none;">
+          <img id="proofImg" src="" alt="Preview bukti pembayaran"
+               style="max-width:14rem;max-height:14rem;border-radius:var(--p-r-sm);border:1px solid var(--p-border);">
+        </div>
+        <p id="proofHint" class="p-hint">Dokumen ini disimpan secara privat dan hanya dapat diakses oleh admin ISF.</p>
+      </div>
+
+    </div>
+  </div>
+
+  {# ── Actions ── #}
+  <div style="display:flex;align-items:center;gap:var(--p-sp-3);flex-wrap:wrap;">
+    <button type="submit" class="p-btn p-btn--primary" id="btnSubmit">
+      <span id="btnText">Kirim Bukti Pembayaran</span>
+      <span class="spinner" id="btnSpinner" style="display:none;" aria-hidden="true"></span>
+    </button>
+    <a href="/portal/scholarship/loans" class="p-btn p-btn--ghost">Batal</a>
+    <span id="uploadStatus" style="font-size:0.85rem;" role="status" aria-live="polite"></span>
+  </div>
+</form>
+
+<script>
+(function() {
+  'use strict';
+  var csrf          = '{{ csrfToken }}';
+  var installmentId = '{{ installmentId }}';
+
+  // Image preview
+  document.getElementById('proof').addEventListener('change', function() {
+    var file    = this.files[0];
+    var preview = document.getElementById('proofPreview');
+    var img     = document.getElementById('proofImg');
+    if (file && file.type.startsWith('image/')) {
+      var reader = new FileReader();
+      reader.onload = function(e) { img.src = e.target.result; preview.style.display = 'block'; };
+      reader.readAsDataURL(file);
+    } else {
+      preview.style.display = 'none';
+    }
+  });
+
+  document.getElementById('paymentForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var statusEl = document.getElementById('uploadStatus');
+    var btn      = document.getElementById('btnSubmit');
+    var btnTxt   = document.getElementById('btnText');
+    var spinner  = document.getElementById('btnSpinner');
+    statusEl.textContent = 'Mengunggah…';
+    statusEl.style.color = 'var(--p-text-muted)';
+    btn.disabled = true;
+    btnTxt.textContent = 'Mengunggah…';
+    spinner.style.display = 'inline-block';
+
+    var formData = new FormData(document.getElementById('paymentForm'));
+    formData.delete('_csrf');
+
+    try {
+      var r = await fetch('/api/v1/scholarship/installments/' + installmentId + '/pay', {
+        method: 'POST',
+        headers: { 'x-csrf-token': csrf },
+        body: formData,
+      });
+      var json = await r.json();
+      if (!r.ok) {
+        var msg = json.details ? json.details.map(function(d) { return d.message; }).join(', ') : (json.error || 'Gagal mengirim.');
+        statusEl.textContent = msg;
+        statusEl.style.color = 'var(--p-error-text)';
+        btn.disabled = false;
+        btnTxt.textContent = 'Kirim Bukti Pembayaran';
+        spinner.style.display = 'none';
+        return;
+      }
+      statusEl.textContent = '✓ Bukti berhasil dikirim. Menunggu verifikasi admin.';
+      statusEl.style.color = 'var(--p-success-text)';
+      setTimeout(function() { window.location.href = '/portal/scholarship/loans'; }, 2000);
+    } catch {
+      statusEl.textContent = 'Terjadi kesalahan jaringan.';
+      statusEl.style.color = 'var(--p-error-text)';
+      btn.disabled = false;
+      btnTxt.textContent = 'Kirim Bukti Pembayaran';
+      spinner.style.display = 'none';
+    }
+  });
+})();
+</script>
+
+{% endblock %}

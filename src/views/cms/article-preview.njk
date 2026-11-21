@@ -1,0 +1,51 @@
+{% extends "layouts/base.njk" %}
+{% block title %}Preview: {{ article.title }} — ISF{% endblock %}
+{% block head %}
+<style>
+.preview-bar { background:var(--color-primary); padding:0.75rem 1.5rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; font-size:0.85rem; color:rgba(255,255,255,0.80); border-bottom:2px solid var(--color-accent); }
+.preview-bar strong { color:#FFFFFF; }
+.article-preview-main { max-width:720px; margin:0 auto; padding:3rem 1.5rem; }
+.article-title { font-family:var(--font-display); font-size:clamp(1.75rem,5vw,2.75rem); line-height:1.15; margin-bottom:1rem; }
+.article-body h1,.article-body h2,.article-body h3 { font-family:var(--font-display); margin:2rem 0 1rem; }
+.article-body h2 { font-size:1.6rem; }
+.article-body h3 { font-size:1.3rem; }
+.article-body p { margin:0 0 1.25rem; line-height:1.8; }
+.article-body ul,.article-body ol { margin:0 0 1.25rem; padding-left:2rem; }
+.article-body blockquote { border-left:4px solid var(--color-accent); margin:1.5rem 0; padding:1rem 1.5rem; background:var(--color-accent-light); }
+.article-body pre { background:rgba(0,0,0,0.4); padding:1.25rem; border-radius:6px; overflow-x:auto; }
+.article-body code { background:rgba(0,0,0,0.3); padding:0.15em 0.4em; border-radius:3px; font-size:0.88em; }
+.article-body pre code { background:none; padding:0; }
+.article-body a { color:var(--color-accent); }
+</style>
+{% endblock %}
+{% block body %}
+<div style="min-height:100vh;display:grid;grid-template-rows:auto 1fr auto;">
+  <div class="preview-bar">
+    <span><strong>PREVIEW</strong> — Ini adalah pratinjau artikel. Konten belum diterbitkan.</span>
+    <div style="display:flex;gap:0.75rem;">
+      <a href="/admin/cms/articles/{{ article.id }}/edit" style="color:#FFFFFF;font-weight:600;">Edit</a>
+      <a href="/admin/cms/articles/{{ article.id }}" style="color:rgba(255,255,255,0.75);">Kembali</a>
+    </div>
+  </div>
+
+  <main class="article-preview-main" id="main-content">
+    {% if article.coverImageUrl %}
+    <div style="border-radius:var(--radius-md);overflow:hidden;margin-bottom:2rem;">
+      <img src="{{ article.coverImageUrl }}" alt="{{ article.title }}" style="width:100%;height:auto;">
+    </div>
+    {% endif %}
+
+    <h1 class="article-title">{{ article.title }}</h1>
+
+    {% if article.summary %}
+    <p style="color:var(--color-text-muted);font-size:1.05rem;font-style:italic;margin-bottom:2rem;">{{ article.summary }}</p>
+    {% endif %}
+
+    <div class="article-body">
+      {{ article.bodyHtml | safe }}
+    </div>
+  </main>
+
+  <footer class="auth-footer">&copy; {{ year }} Intelligentsia Scholarship Fund. All rights reserved.</footer>
+</div>
+{% endblock %}

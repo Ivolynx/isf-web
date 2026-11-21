@@ -1,0 +1,64 @@
+{% extends "layouts/admin.njk" %}
+{% block title %}{{ title }}{% endblock %}
+{% block breadcrumb %}
+<a href="/admin/cms">CMS</a>
+<span class="admin-breadcrumb__sep">›</span>
+<span class="admin-breadcrumb__current">Kategori</span>
+{% endblock %}
+{% block body %}
+<div class="admin-page-header">
+  <div><h1 class="admin-page-title">Kategori</h1></div>
+  <button type="button" id="btn-new-cat" class="btn btn--primary btn--sm">+ Kategori Baru</button>
+</div>
+<div id="new-cat-form" style="display:none;" class="info-card" style="padding:1.5rem;margin-bottom:1.5rem;">
+  <h2 style="font-size:0.9rem;font-weight:600;margin-bottom:1rem;">Tambah Kategori Baru</h2>
+  <div class="form-group"><label class="form-label form-label--required" for="cat-name">Nama</label><input type="text" id="cat-name" class="form-input" placeholder="Nama kategori" maxlength="100"></div>
+  <div class="form-group"><label class="form-label" for="cat-slug">Slug</label><input type="text" id="cat-slug" class="form-input" placeholder="slug-otomatis" maxlength="100"></div>
+  <div class="form-group"><label class="form-label" for="cat-desc">Deskripsi</label><textarea id="cat-desc" class="form-input" rows="2" maxlength="500"></textarea></div>
+  <div style="display:flex;gap:0.75rem;"><button type="button" id="btn-save-cat" class="btn btn--primary">Simpan</button><button type="button" id="btn-cancel-cat" class="btn btn--ghost">Batal</button></div>
+  <div id="cat-error" class="alert alert--error" style="display:none;margin-top:0.75rem;"></div>
+</div>
+{% if categories and categories.length > 0 %}
+<div class="info-card" style="padding:0;overflow:hidden;">
+  <table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+    <thead><tr style="border-bottom:1px solid rgba(255,255,255,0.06);">
+      <th style="padding:0.85rem 1rem;text-align:left;color:var(--color-text-muted);font-weight:600;font-size:0.78rem;text-transform:uppercase;">Nama</th>
+      <th style="padding:0.85rem 1rem;text-align:left;color:var(--color-text-muted);font-weight:600;font-size:0.78rem;text-transform:uppercase;">Slug</th>
+    </tr></thead>
+    <tbody>
+      {% for cat in categories %}
+      <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+        <td style="padding:0.85rem 1rem;font-weight:500;">{{ cat.name }}</td>
+        <td style="padding:0.85rem 1rem;color:var(--color-text-muted);">{{ cat.slug }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div style="text-align:center;padding:4rem 1rem;color:var(--color-text-muted);"><p>Belum ada kategori.</p></div>
+{% endif %}
+<script>
+(function() {
+  const CSRF = '{{ csrfToken }}';
+  document.getElementById('btn-new-cat').addEventListener('click', function() { document.getElementById('new-cat-form').style.display = 'block'; });
+  document.getElementById('btn-cancel-cat').addEventListener('click', function() { document.getElementById('new-cat-form').style.display = 'none'; });
+  document.getElementById('btn-save-cat').addEventListener('click', async function() {
+    const name = document.getElementById('cat-name').value.trim();
+    const slug = document.getElementById('cat-slug').value.trim();
+    const description = document.getElementById('cat-desc').value.trim();
+    if (!name) { document.getElementById('cat-error').textContent='Nama wajib diisi.'; document.getElementById('cat-error').style.display='block'; return; }
+    try {
+      const resp = await fetch('/api/v1/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF },
+        body: JSON.stringify({ name, slug: slug || undefined, description: description || undefined }),
+      });
+      const result = await resp.json();
+      if (!resp.ok) { document.getElementById('cat-error').textContent=result.error||'Gagal menyimpan.'; document.getElementById('cat-error').style.display='block'; return; }
+      window.location.reload();
+    } catch(e) { document.getElementById('cat-error').textContent='Koneksi gagal.'; document.getElementById('cat-error').style.display='block'; }
+  });
+})();
+</script>
+{% endblock %}

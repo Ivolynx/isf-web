@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Member Portal — ISF{% endblock %}</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+  {# Anti-flash: apply saved theme before paint — same key as all pages #}
+  <script>
+    (function(){
+      try {
+        var t = localStorage.getItem('isf-theme');
+        if (t === 'dark') {
+          document.documentElement.setAttribute('data-theme','dark');
+        } else if (!t && window.matchMedia && window.matchMedia('(prefers-color-scheme:dark)').matches) {
+          document.documentElement.setAttribute('data-theme','dark');
+        } else {
+          document.documentElement.setAttribute('data-theme','light');
+        }
+      } catch(e){
+        document.documentElement.setAttribute('data-theme','light');
+      }
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/design-tokens.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/portal.css">
+  {% block head %}{% endblock %}
+</head>
+<body style="background:var(--p-bg);color:var(--p-text);font-family:var(--p-font-sans);">
+
+<a class="p-skip-link" href="#portal-main">Langsung ke konten</a>
+
+{# Mobile sidebar overlay #}
+<div class="portal-sidebar-overlay" id="portal-sidebar-overlay" aria-hidden="true"></div>
+
+<div class="portal-shell" id="portal-shell">
+
+  {# ── TOPBAR ───────────────────────────────────────── #}
+  <header class="portal-topbar" role="banner">
+
+    {# Desktop collapse toggle #}
+    <button
+      class="portal-topbar__toggle"
+      id="portal-toggle-desktop"
+      type="button"
+      aria-label="Toggle sidebar"
+      title="Toggle sidebar"
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+
+    {# Brand #}
+    <a class="portal-topbar__brand" href="/portal" aria-label="Member Portal ISF">
+      <span class="portal-topbar__brand-mark" aria-hidden="true">I</span>
+      <span class="portal-topbar__brand-label">
+        <span class="portal-topbar__brand-name">ISF</span>
+        <span class="portal-topbar__brand-sub">Member Portal</span>
+      </span>
+    </a>
+
+    {# Breadcrumb #}
+    <nav class="portal-topbar__breadcrumb" aria-label="Breadcrumb">
+      {% block breadcrumb %}
+        <span class="portal-topbar__breadcrumb__current">Dashboard</span>
+      {% endblock %}
+    </nav>
+
+    {# Right: theme toggle + user info #}
+    <div class="portal-topbar__right">
+      <button
+        class="theme-toggle"
+        id="portal-theme-toggle"
+        type="button"
+        aria-label="Toggle tema terang/gelap"
+        title="Ganti tema"
+        style="background:var(--p-surface);border-color:var(--p-border);"
+      >
+        <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+        <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      </button>
+      <div class="portal-topbar__user" aria-label="Akun pengguna">
+        <div class="portal-topbar__avatar" aria-hidden="true">
+          {{ (displayName or userEmail or "?") | first | upper }}
+        </div>
+        <div>
+          <div class="portal-topbar__user-name">{{ displayName or userEmail }}</div>
+          <div class="portal-topbar__user-role">{{ userRole }}</div>
+        </div>
+      </div>
+
+      {# Mobile hamburger #}
+      <button
+        class="portal-topbar__mobile-toggle"
+        id="portal-toggle-mobile"
+        type="button"
+        aria-label="Buka menu navigasi"
+        aria-expanded="false"
+        aria-controls="portal-sidebar"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+  </header>
+
+  {# ── SIDEBAR ─────────────────────────────────────── #}
+  <aside class="portal-sidebar" id="portal-sidebar" aria-label="Navigasi Member Portal">
+    <nav class="portal-sidebar__nav" aria-label="Menu utama">
+      {% include "partials/portal-sidebar.njk" %}
+    </nav>
+
+    <div class="portal-sidebar__footer">
+      <div class="portal-sidebar__user" aria-hidden="true">
+        <div class="portal-sidebar__user-avatar">
+          {{ (displayName or userEmail or "?") | first | upper }}
+        </div>
+        <div class="portal-sidebar__user-info">
+          <div class="portal-sidebar__user-name">{{ displayName or userEmail }}</div>
+          <div class="portal-sidebar__user-role">{{ userRole }}</div>
+        </div>
+      </div>
+      <form class="portal-sidebar__logout-form" method="POST" action="/auth/logout">
+        <input type="hidden" name="_csrf" value="{{ csrfToken }}">
+        <button type="submit" class="portal-sidebar__logout" aria-label="Keluar dari akun">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" flex-shrink="0" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"/>
+          </svg>
+          <span class="portal-sidebar__logout-label">Keluar</span>
+        </button>
+      </form>
+    </div>
+  </aside>
+
+  {# ── MAIN CONTENT ─────────────────────────────────── #}
+  <main class="portal-main" id="portal-main">
+    {% block body %}{% endblock %}
+  </main>
+
+</div>{# /portal-shell #}
+
+<script>
+(function() {
+  'use strict';
+  var STORAGE_KEY = 'isf-portal-sidebar-collapsed';
+  var THEME_KEY   = 'isf-theme';
+  var shell    = document.getElementById('portal-shell');
+  var sidebar  = document.getElementById('portal-sidebar');
+  var overlay  = document.getElementById('portal-sidebar-overlay');
+  var deskBtn  = document.getElementById('portal-toggle-desktop');
+  var mobBtn   = document.getElementById('portal-toggle-mobile');
+  var themeBtn = document.getElementById('portal-theme-toggle');
+
+  // Restore collapse state on desktop
+  try {
+    if (localStorage.getItem(STORAGE_KEY) === '1') {
+      shell.classList.add('sidebar-collapsed');
+    }
+  } catch(e) {}
+
+  // Theme toggle
+  if (themeBtn) {
+    themeBtn.addEventListener('click', function() {
+      var current = document.documentElement.getAttribute('data-theme') || 'light';
+      var next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem(THEME_KEY, next); } catch(e) {}
+    });
+  }
+
+  // Desktop collapse
+  if (deskBtn) {
+    deskBtn.addEventListener('click', function() {
+      var collapsed = shell.classList.toggle('sidebar-collapsed');
+      try { localStorage.setItem(STORAGE_KEY, collapsed ? '1' : '0'); } catch(e) {}
+    });
+  }
+
+  // Mobile drawer helpers
+  function openDrawer() {
+    sidebar.classList.add('is-open');
+    overlay.classList.add('is-open');
+    overlay.setAttribute('aria-hidden', 'false');
+    if (mobBtn) mobBtn.setAttribute('aria-expanded', 'true');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeDrawer() {
+    sidebar.classList.remove('is-open');
+    overlay.classList.remove('is-open');
+    overlay.setAttribute('aria-hidden', 'true');
+    if (mobBtn) mobBtn.setAttribute('aria-expanded', 'false');
+    document.body.style.overflow = '';
+  }
+
+  if (mobBtn) {
+    mobBtn.addEventListener('click', function() {
+      sidebar.classList.contains('is-open') ? closeDrawer() : openDrawer();
+    });
+  }
+  if (overlay) {
+    overlay.addEventListener('click', closeDrawer);
+  }
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && sidebar.classList.contains('is-open')) closeDrawer();
+  });
+})();
+</script>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

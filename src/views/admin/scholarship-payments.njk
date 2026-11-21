@@ -1,0 +1,67 @@
+{% extends "layouts/admin.njk" %}
+
+{% block title %}Verifikasi Pembayaran — ISF{% endblock %}
+
+{% block breadcrumb %}
+<a href="/admin" class="admin-breadcrumb__link">Admin</a>
+<span class="admin-breadcrumb__sep">/</span>
+<a href="/admin/scholarship" class="admin-breadcrumb__link">Beasiswa</a>
+<span class="admin-breadcrumb__sep">/</span>
+<span class="admin-breadcrumb__current">Verifikasi Pembayaran</span>
+{% endblock %}
+
+{% block body %}
+<div class="admin-page-header">
+  <div>
+    <h1 class="admin-page-title">Verifikasi Bukti Pembayaran</h1>
+    <p class="admin-page-lead">Tinjau dan verifikasi bukti pembayaran cicilan mahasiswa.</p>
+  </div>
+</div>
+
+{% if dbError %}
+<div class="alert alert--warning">{{ dbError }}</div>
+{% endif %}
+
+{% if payments and payments.length > 0 %}
+<div class="table-wrapper">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Cicilan ke</th>
+        <th>Nominal</th>
+        <th>Tanggal Bayar</th>
+        <th>Metode</th>
+        <th>Ref</th>
+        <th>Status</th>
+        <th>Diajukan</th>
+        <th>Tindakan</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for pay in payments %}
+      <tr>
+        <td>{{ pay.installmentId | truncate(8, true, '…') }}</td>
+        <td style="font-family:monospace;">Rp {{ pay.paymentAmount | float | round(0) | string }}</td>
+        <td>{{ pay.paymentDate }}</td>
+        <td>{{ pay.paymentMethod | replace('_', ' ') }}</td>
+        <td style="font-size:0.82rem;">{{ pay.referenceNumber or '—' }}</td>
+        <td>
+          <span class="status-badge status-badge--{{ pay.status | lower | replace('_', '-') }}">
+            {{ pay.status | replace('_', ' ') }}
+          </span>
+        </td>
+        <td style="font-size:0.82rem;color:var(--color-text-muted);">
+          {{ pay.createdAt | string | truncate(10, true, '') if pay.createdAt else '—' }}
+        </td>
+        <td>
+          <a href="/admin/scholarship/payments/{{ pay.id }}" class="btn btn--ghost btn--sm">Detail</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p style="color:var(--color-text-muted);padding:1rem 0;">Tidak ada pembayaran yang perlu diverifikasi.</p>
+{% endif %}
+{% endblock %}

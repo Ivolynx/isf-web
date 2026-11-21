@@ -1,0 +1,293 @@
+{% extends "layouts/base.njk" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block head %}
+<meta name="description" content="{{ metaDescription }}">
+<link rel="canonical" href="/blog/{{ article.slug }}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+<style>
+/* article page — uses ISF semantic tokens (theme-aware) */
+.article-pg { min-height: 100vh; display: flex; flex-direction: column; background: var(--color-bg); color: var(--color-text); }
+.article-pg-main { flex: 1; padding: 3rem 0 5rem; }
+.article-pg-layout {
+  display: grid;
+  gap: 3rem;
+  max-width: 100%;
+}
+@media (min-width: 64em) {
+  .article-pg-layout { grid-template-columns: 1fr 280px; gap: 4rem; align-items: start; }
+}
+.article-content { max-width: 100%; }
+.article-breadcrumb { font-size: 0.82rem; color: var(--color-text-muted); margin-bottom: 2rem; display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+.article-breadcrumb a { color: var(--color-text-secondary); transition: color 0.2s; }
+.article-breadcrumb a:hover { color: var(--color-primary); }
+.article-breadcrumb span { color: var(--color-border-strong); }
+.article-hero { margin-bottom: 2.5rem; }
+.article-cat-tag {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+  padding: 0.2rem 0.65rem;
+  border-radius: var(--radius-pill);
+  margin-bottom: 1rem;
+}
+.article-pg-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 4vw, 2.75rem);
+  font-weight: 500;
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  margin-bottom: 1.25rem;
+  color: var(--color-text);
+}
+.article-pg-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+.article-pg-summary {
+  font-size: 1.1rem;
+  color: var(--color-text-secondary);
+  line-height: 1.7;
+  font-style: italic;
+  margin-bottom: 2rem;
+  padding: 1.25rem 1.5rem;
+  border-left: 3px solid var(--color-accent-display);
+  background: var(--color-accent-light);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.article-cover {
+  margin-bottom: 2.5rem;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.article-cover img { width: 100%; height: auto; display: block; max-height: 480px; object-fit: cover; }
+.article-body {
+  font-size: 1.05rem;
+  line-height: 1.85;
+  color: var(--color-text);
+}
+.article-body h1,.article-body h2,.article-body h3,.article-body h4,.article-body h5,.article-body h6 {
+  font-family: var(--font-display);
+  margin: 2.5rem 0 1rem;
+  line-height: 1.2;
+  color: var(--color-text);
+}
+.article-body h2 { font-size: 1.65rem; }
+.article-body h3 { font-size: 1.35rem; }
+.article-body p { margin: 0 0 1.4rem; }
+.article-body ul, .article-body ol { margin: 0 0 1.4rem; padding-left: 2rem; }
+.article-body li { margin-bottom: 0.5rem; }
+.article-body blockquote {
+  border-left: 3px solid var(--color-accent-display);
+  margin: 2rem 0;
+  padding: 1.25rem 1.5rem;
+  background: var(--color-accent-light);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.article-body blockquote p { margin: 0; color: var(--color-text-secondary); font-style: italic; font-size: 1.05rem; }
+.article-body pre { background: var(--color-bg-secondary); padding: 1.25rem; border-radius: var(--radius-sm); overflow-x: auto; margin-bottom: 1.4rem; border: 1px solid var(--color-border); }
+.article-body code { font-size: 0.9em; background: var(--color-bg-secondary); padding: 0.15em 0.4em; border-radius: 3px; border: 1px solid var(--color-border); }
+.article-body pre code { background: none; padding: 0; border: none; font-size: 0.88rem; }
+.article-body a { color: var(--color-primary); text-decoration: underline; }
+.article-body a:hover { color: var(--color-primary-hover); }
+.article-body img { max-width: 100%; border-radius: var(--radius-sm); margin: 1.5rem 0; }
+.article-body table { width: 100%; border-collapse: collapse; margin-bottom: 1.4rem; font-size: 0.92rem; }
+.article-body th, .article-body td { padding: 0.65rem 0.9rem; border: 1px solid var(--color-border); text-align: left; }
+.article-body th { background: var(--color-bg-secondary); font-weight: 600; }
+.article-body hr { border: none; border-top: 1px solid var(--color-border); margin: 2.5rem 0; }
+.article-tags {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+.article-tags-label { font-size: 0.78rem; color: var(--color-text-muted); margin-right: 0.25rem; }
+.tag-pill { background: var(--color-primary-bg); color: var(--color-primary); padding: 0.2rem 0.65rem; border-radius: var(--radius-pill); font-size: 0.75rem; font-weight: 600; }
+.article-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-text-secondary);
+  font-size: 0.88rem;
+  margin-top: 3rem;
+  transition: color 0.2s;
+}
+.article-back:hover { color: var(--color-primary); }
+.article-sidebar { display: flex; flex-direction: column; gap: 2rem; }
+.article-sidebar-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+.article-sidebar-card__title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="article-pg">
+  <header class="site-header" data-header>
+    <div class="container site-header__inner">
+      <a class="brand" href="/" aria-label="ISF">
+        <span class="brand__mark" aria-hidden="true">I</span>
+        <span class="brand__text">INTELLIGENTSIA<span class="brand__sub">Scholarship Fund</span></span>
+      </a>
+      <button class="nav-toggle" type="button" aria-label="Buka menu" aria-expanded="false" aria-controls="art-nav" data-nav-toggle>
+        <span class="nav-toggle__bar"></span>
+        <span class="nav-toggle__bar"></span>
+        <span class="sr-only">Buka menu</span>
+      </button>
+      <nav class="site-nav" id="art-nav" aria-label="Navigasi">
+        <ul class="site-nav__list">
+          <li><a href="/#tentang">Tentang ISF</a></li>
+          <li><a href="/#program">Program</a></li>
+          <li><a href="/fundraising">Penggalangan Dana</a></li>
+          <li><a href="/blog" class="is-active">Blog</a></li>
+          <li><a href="/#cara-daftar">Cara Daftar</a></li>
+        </ul>
+        <div class="site-nav__actions">
+          <button class="theme-toggle" id="theme-toggle-art" aria-label="Ganti tema" title="Ganti tema terang/gelap">
+            <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 2v2m0 16v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M2 12h2m16 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+            <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+          </button>
+          <a class="btn btn--primary btn--sm" href="/auth/register">Daftar Sekarang</a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main class="article-pg-main" id="main-content">
+    <div class="container">
+      <div class="article-pg-layout">
+        <!-- Article content -->
+        <article class="article-content">
+          <nav class="article-breadcrumb" aria-label="Breadcrumb">
+            <a href="/">Beranda</a>
+            <span aria-hidden="true">/</span>
+            <a href="/blog">Blog</a>
+            <span aria-hidden="true">/</span>
+            <span>{{ article.title | truncate(50) }}</span>
+          </nav>
+
+          <div class="article-hero">
+            {% if article.categories and article.categories.length > 0 %}
+            <div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.75rem;">
+              {% for cat in article.categories %}
+              <span class="article-cat-tag">{{ cat.name }}</span>
+              {% endfor %}
+            </div>
+            {% endif %}
+            <h1 class="article-pg-title">{{ article.title }}</h1>
+            <div class="article-pg-meta">
+              {% if article.authorDisplayName or article.authorName %}
+              <span>
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true" style="vertical-align:middle;margin-right:0.25rem;"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0"/></svg>
+                {{ article.authorDisplayName or article.authorName }}
+              </span>
+              {% endif %}
+              {% if article.publishedAt %}
+              <time datetime="{{ article.publishedAt }}">
+                {{ article.publishedAt | string | truncate(10, true, '') }}
+              </time>
+              {% endif %}
+            </div>
+          </div>
+
+          {% if article.coverImageUrl %}
+          <div class="article-cover">
+            <img src="{{ article.coverImageUrl }}" alt="{{ article.title }}" loading="eager">
+          </div>
+          {% endif %}
+
+          {% if article.summary %}
+          <p class="article-pg-summary">{{ article.summary }}</p>
+          {% endif %}
+
+          <div class="article-body">
+            {{ article.bodyHtml | safe }}
+          </div>
+
+          {% if article.tags and article.tags.length > 0 %}
+          <div class="article-tags">
+            <span class="article-tags-label">Tags:</span>
+            {% for tag in article.tags %}
+            <span class="tag-pill">{{ tag.name }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          <a href="/blog" class="article-back">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            Kembali ke Blog
+          </a>
+        </article>
+
+        <!-- Sidebar -->
+        <aside class="article-sidebar" aria-label="Informasi lainnya">
+          <div class="article-sidebar-card">
+            <h2 class="article-sidebar-card__title">Tentang ISF</h2>
+            <p style="color:var(--color-text-secondary);font-size:0.88rem;line-height:1.6;margin-bottom:1.25rem;">Intelligentsia Scholarship Fund mendukung mahasiswa berprestasi di seluruh Indonesia dengan beasiswa penuh, mentoring, dan jaringan profesional.</p>
+            <a href="/auth/register" class="btn btn--primary btn--sm" style="width:100%;justify-content:center;">Daftar Beasiswa</a>
+          </div>
+          <div class="article-sidebar-card">
+            <h2 class="article-sidebar-card__title">Dukung Pendidikan</h2>
+            <p style="color:var(--color-text-secondary);font-size:0.88rem;line-height:1.6;margin-bottom:1.25rem;">Donasi Anda membantu mahasiswa berprestasi mendapatkan pendidikan yang layak dan masa depan yang lebih cerah.</p>
+            <a href="/fundraising" class="btn btn--ghost btn--sm" style="width:100%;justify-content:center;">Lihat Kampanye Donasi</a>
+          </div>
+          <div class="article-sidebar-card">
+            <h2 class="article-sidebar-card__title">Navigasi Blog</h2>
+            <div style="display:flex;flex-direction:column;gap:0.5rem;">
+              <a href="/blog" style="color:var(--color-text-secondary);font-size:0.88rem;display:flex;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid var(--color-border);">
+                <span>Semua Artikel</span><span>→</span>
+              </a>
+              <a href="/blog" style="color:var(--color-text-secondary);font-size:0.88rem;display:flex;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid var(--color-border);">
+                <span>Berita ISF</span><span>→</span>
+              </a>
+              <a href="/blog" style="color:var(--color-text-secondary);font-size:0.88rem;display:flex;justify-content:space-between;padding:0.5rem 0;">
+                <span>Cerita Penerima</span><span>→</span>
+              </a>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container site-footer__bottom" style="padding-top:2rem;padding-bottom:2rem;">
+      <p>© {{ year }} Yayasan Intelegensia Nusantara. <a href="/">Beranda</a> · <a href="/blog">Blog</a> · <a href="/fundraising">Kampanye</a> · <a href="/auth/login">Portal</a></p>
+    </div>
+  </footer>
+</div>
+<script src="/js/main.js" defer></script>
+{% endblock %}

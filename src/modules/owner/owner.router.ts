@@ -66,12 +66,16 @@ function year(): number {
 
 async function baseLocals(req: Request, res: Response): Promise<Record<string, unknown>> {
   const user = req.session.userId ? await getUserById(req.session.userId) : null;
+  const { getWordPressConfig } = await import('../home/wordpress.service.js');
+  const wpConfig = getWordPressConfig();
   return {
     csrfToken: csrf(req, res),
     year: year(),
     userEmail: req.session.userEmail,
     userRole: req.session.userRole,
     displayName: user?.displayName || req.session.userEmail,
+    currentPath: req.originalUrl.split('?')[0],
+    wpAdminUrl: wpConfig.adminUrl,
   };
 }
 

@@ -1,0 +1,166 @@
+{% extends "layouts/admin.njk" %}
+
+{% block title %}Buku Pembiayaan Mahasiswa — ISF{% endblock %}
+
+{% block breadcrumb %}
+<a href="/admin/scholarship" class="admin-breadcrumb__link">Beasiswa</a>
+<span class="admin-breadcrumb__sep">›</span>
+<span class="admin-breadcrumb__current">Buku Pembiayaan</span>
+{% endblock %}
+
+{% block body %}
+<div class="admin-page-header">
+  <div>
+    <h1 class="admin-page-title">Buku Pembiayaan Mahasiswa</h1>
+    <p class="admin-page-lead">
+      Ringkasan pinjaman aktif, cicilan, dan penerimaan pembayaran.
+      <span class="sim-badge" style="margin-left:0.5rem;">SIMULASI — Bukan transaksi keuangan nyata</span>
+    </p>
+  </div>
+</div>
+
+<div class="alert alert--warning" style="margin-bottom:1.5rem;padding:0.75rem 1rem;font-size:0.875rem;">
+  <strong>Penting:</strong> Buku pembiayaan mahasiswa (Student Financing Ledger) adalah catatan terpisah dari Fundraising &amp; Donation Ledger.
+  Scholarship grant tidak dicatat sebagai piutang. Student loan dicatat sebagai piutang berdasarkan perjanjian yang disetujui.
+  Dana kampanye donasi tidak dapat otomatis dialihkan ke pembiayaan mahasiswa tanpa dasar, persetujuan, dan pencatatan resmi.
+</div>
+
+{% if dbError %}
+<div class="alert alert--error" style="margin-bottom:1.5rem;">
+  <strong>⚠ Database belum dimigrasikan.</strong> Jalankan <code>npm run db:migrate</code> untuk mengaktifkan tabel pembiayaan.
+</div>
+{% else %}
+
+{# Summary cards #}
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem;margin-bottom:1.75rem;">
+  <div class="info-card">
+    <p class="info-card__label">Total Pinjaman Aktif</p>
+    <p class="info-card__value" style="font-family:monospace;">{{ stats.totalActiveLoans or 0 }}</p>
+  </div>
+  <div class="info-card">
+    <p class="info-card__label">Pokok Tersalur (Simulasi)</p>
+    <p class="info-card__value" style="font-family:monospace;font-size:1rem;">
+      Rp {{ stats.totalPrincipal | float | round(0) | string if stats.totalPrincipal else '0' }}
+    </p>
+  </div>
+  <div class="info-card">
+    <p class="info-card__label">Total Cicilan Tagihan</p>
+    <p class="info-card__value" style="font-family:monospace;">{{ stats.totalInstallments or 0 }}</p>
+  </div>
+  <div class="info-card">
+    <p class="info-card__label">Cicilan Lunas</p>
+    <p class="info-card__value" style="font-family:monospace;color:var(--color-success-text);">{{ stats.paidInstallments or 0 }}</p>
+  </div>
+  <div class="info-card">
+    <p class="info-card__label">Cicilan Belum Lunas</p>
+    <p class="info-card__value" style="font-family:monospace;color:var(--color-warning-text);">{{ stats.unpaidInstallments or 0 }}</p>
+  </div>
+  <div class="info-card">
+    <p class="info-card__label">Total Diterima (Diverifikasi)</p>
+    <p class="info-card__value" style="font-family:monospace;font-size:1rem;color:var(--color-success-text);">
+      Rp {{ stats.totalReceived | float | round(0) | string if stats.totalReceived else '0' }}
+    </p>
+  </div>
+</div>
+
+{# Loan agreements list #}
+<div class="owner-section">
+  <h2 class="owner-section__title">Perjanjian Pembiayaan Aktif</h2>
+
+  {% if agreements and agreements.length > 0 %}
+  <div class="table-wrapper">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>No. Perjanjian</th>
+          <th>ID Mahasiswa</th>
+          <th>Pokok</th>
+          <th>Tenor</th>
+          <th>Cicilan Pertama</th>
+          <th>Status</th>
+          <th>Simulasi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ag in agreements %}
+        <tr>
+          <td style="font-family:monospace;font-size:0.85rem;">{{ ag.agreementNumber }}</td>
+          <td style="font-size:0.82rem;color:var(--color-text-muted);">{{ ag.studentId | truncate(12, true, '…') }}</td>
+          <td style="font-family:monospace;">Rp {{ ag.principalAmount | float | round(0) | string }}</td>
+          <td>{{ ag.tenorMonths }} bln</td>
+          <td>{{ ag.firstPaymentDate }}</td>
+          <td>
+            <span class="status-badge status-badge--{{ ag.status | lower | replace('_', '-') }}">
+              {{ ag.status | replace('_', ' ') }}
+            </span>
+          </td>
+          <td>
+            {% if ag.isSimulation %}
+            <span style="font-size:0.78rem;color:var(--color-accent-display);font-weight:500;">✓ SIM</span>
+            {% else %}
+            <span style="font-size:0.78rem;color:var(--red-400);">LIVE</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p style="color:var(--color-text-muted);padding:0.5rem 0;">Belum ada perjanjian pembiayaan.</p>
+  {% endif %}
+</div>
+
+{# Recent approved payments #}
+<div class="owner-section" style="margin-top:1.5rem;">
+  <h2 class="owner-section__title">Penerimaan Pembayaran Terverifikasi</h2>
+  <p style="font-size:0.82rem;color:var(--color-text-muted);margin-bottom:0.75rem;">
+    Hanya pembayaran yang telah disetujui admin yang tercatat sebagai penerimaan.
+    Pembayaran yang ditolak tidak mengurangi saldo piutang.
+  </p>
+
+  {% if approvedPayments and approvedPayments.length > 0 %}
+  <div class="table-wrapper">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>ID Cicilan</th>
+          <th>Nominal</th>
+          <th>Tanggal Bayar</th>
+          <th>Metode</th>
+          <th>Ref</th>
+          <th>Diverifikasi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for pay in approvedPayments %}
+        <tr>
+          <td style="font-family:monospace;font-size:0.82rem;">{{ pay.installmentId | truncate(8, true, '…') }}</td>
+          <td style="font-family:monospace;color:var(--color-success-text);">Rp {{ pay.paymentAmount | float | round(0) | string }}</td>
+          <td>{{ pay.paymentDate }}</td>
+          <td>{{ pay.paymentMethod | replace('_', ' ') }}</td>
+          <td style="font-size:0.82rem;">{{ pay.referenceNumber or '—' }}</td>
+          <td style="font-size:0.82rem;color:var(--color-text-muted);">
+            {{ pay.verifiedAt | string | truncate(10, true, '') if pay.verifiedAt else '—' }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p style="color:var(--color-text-muted);padding:0.5rem 0;">Belum ada pembayaran yang diverifikasi.</p>
+  {% endif %}
+</div>
+
+<div style="margin-top:1.5rem;padding:1.25rem;background:var(--surface-1);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);font-size:0.82rem;color:var(--color-text-muted);line-height:1.7;">
+  <strong style="color:var(--color-text-secondary);">Catatan Pembukuan Student Financing Ledger:</strong><br>
+  Scholarship grant <strong>bukan piutang</strong> dan tidak dicatat dalam ledger ini.<br>
+  Pencairan student loan dicatat sebagai piutang sesuai perjanjian yang disetujui.<br>
+  Pengembalian pokok pinjaman <strong>bukan donasi</strong> dan tidak masuk Fundraising Ledger.<br>
+  Seluruh angka saat ini adalah <strong>simulasi</strong> — tidak ada uang nyata yang terlibat.<br>
+  Implementasi double-entry accounting penuh dan rekonsiliasi akan ditambahkan pada fase berikutnya setelah kebijakan hukum dan operasional disahkan.
+</div>
+
+{% endif %}
+{% endblock %}

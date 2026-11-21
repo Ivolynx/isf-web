@@ -1,0 +1,47 @@
+{% extends "layouts/admin.njk" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block breadcrumb %}
+<a href="/admin/fundraising">Kampanye</a>
+<span class="admin-breadcrumb__sep">›</span>
+<span class="admin-breadcrumb__current">Antrean Review</span>
+{% endblock %}
+
+{% block body %}
+    <h1 class="portal-main__heading">Antrean Tinjauan Kampanye</h1>
+    <p class="portal-main__lead">Kampanye yang memerlukan peninjauan Anda.</p>
+
+    {% if campaigns and campaigns.length > 0 %}
+    <div class="info-card" style="padding:0;overflow:hidden;">
+      <table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border-subtle);">
+            <th style="text-align:left;padding:0.75rem 1rem;color:var(--color-text-muted);">Kampanye</th>
+            <th style="text-align:left;padding:0.75rem 1rem;color:var(--color-text-muted);">Penerima Manfaat</th>
+            <th style="text-align:left;padding:0.75rem 1rem;color:var(--color-text-muted);">Target</th>
+            <th style="text-align:left;padding:0.75rem 1rem;color:var(--color-text-muted);">Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for campaign in campaigns %}
+          <tr style="border-bottom:1px solid var(--border-subtle);">
+            <td style="padding:0.75rem 1rem;">
+              <div style="font-weight:500;">{{ campaign.title | escape }}</div>
+            </td>
+            <td style="padding:0.75rem 1rem;">{{ campaign.beneficiary | escape }}</td>
+            <td style="padding:0.75rem 1rem;">Rp {{ campaign.goalAmount | int }}</td>
+            <td style="padding:0.75rem 1rem;">
+              <a href="/admin/fundraising/{{ campaign.id | urlencode }}" class="btn btn--primary btn--xs">Tinjau</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <p>Tidak ada kampanye yang memerlukan peninjauan saat ini.</p>
+    </div>
+    {% endif %}
+{% endblock %}

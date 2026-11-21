@@ -1,0 +1,441 @@
+{% extends "layouts/base.njk" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block head %}
+<meta name="description" content="{{ campaign.description | truncate(160) }}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+<style>
+/* campaign detail — uses ISF semantic tokens (theme-aware) */
+.camp-detail-pg { min-height: 100vh; display: flex; flex-direction: column; background: var(--color-bg); color: var(--color-text); }
+.camp-detail-main { flex: 1; padding: 2.5rem 0 5rem; }
+.camp-detail-layout {
+  display: grid;
+  gap: 3rem;
+}
+@media (min-width: 64em) {
+  .camp-detail-layout { grid-template-columns: 1fr 360px; gap: 4rem; align-items: start; }
+}
+/* Content */
+.camp-breadcrumb { font-size: 0.82rem; color: var(--color-text-muted); margin-bottom: 1.75rem; display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+.camp-breadcrumb a { color: var(--color-text-secondary); transition: color 0.2s; }
+.camp-breadcrumb a:hover { color: var(--color-primary); }
+.camp-breadcrumb span { color: var(--color-border-strong); }
+.camp-status-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.65rem;
+  border-radius: var(--radius-pill);
+  margin-bottom: 0.875rem;
+}
+.camp-status-badge--active { background: var(--color-success-bg); color: var(--color-success-text); border: 1px solid var(--color-success-border); }
+.camp-status-badge--completed { background: var(--color-info-bg); color: var(--color-info-text); border: 1px solid var(--color-info-border); }
+.camp-status-badge--paused { background: var(--color-warning-bg); color: var(--color-warning-text); border: 1px solid var(--color-warning-border); }
+.camp-detail-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  margin-bottom: 0.75rem;
+  color: var(--color-text);
+}
+.camp-detail-beneficiary { color: var(--color-text-secondary); font-size: 0.92rem; margin-bottom: 2rem; }
+.camp-detail-cover {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: 2.5rem;
+  aspect-ratio: 16/9;
+}
+.camp-detail-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.camp-detail-body {
+  font-size: 1rem;
+  line-height: 1.8;
+  color: var(--color-text);
+}
+.camp-detail-body p { margin: 0 0 1.25rem; }
+.camp-detail-dates {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-border);
+}
+.camp-detail-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-text-secondary);
+  font-size: 0.88rem;
+  margin-top: 2.5rem;
+  transition: color 0.2s;
+}
+.camp-detail-back:hover { color: var(--color-primary); }
+
+/* Right column / sticky box */
+.camp-detail-sidebar { display: flex; flex-direction: column; gap: 1.5rem; }
+.camp-progress-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1.75rem;
+  box-shadow: var(--shadow-md);
+}
+@media (min-width: 64em) {
+  .camp-progress-card { position: sticky; top: calc(var(--header-h, 4.5rem) + 1.5rem); }
+}
+.camp-raised-amount {
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 3vw, 2.1rem);
+  font-weight: 500;
+  color: var(--color-text);
+  line-height: 1.1;
+  margin-bottom: 0.25rem;
+}
+.camp-raised-label { color: var(--color-text-secondary); font-size: 0.88rem; margin-bottom: 1.25rem; }
+.camp-progress-bar {
+  height: 8px;
+  background: var(--color-border);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+.camp-progress-bar__fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary-hover), var(--color-primary));
+  border-radius: var(--radius-pill);
+  transition: width 0.8s var(--ease);
+}
+.camp-progress-stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  margin-bottom: 1.5rem;
+}
+.camp-progress-pct { font-weight: 700; color: var(--color-primary); }
+.camp-stats-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+.camp-stat { text-align: center; }
+.camp-stat__num {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--color-text);
+}
+.camp-stat__label { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.15rem; }
+
+/* Donation form */
+.donation-form-card { padding: 1.75rem; }
+.donation-form-card h2 { font-family: var(--font-display); font-size: 1.2rem; font-weight: 500; margin-bottom: 1.5rem; color: var(--color-text); }
+.mock-notice {
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning-border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.82rem;
+  color: var(--color-warning-text);
+  line-height: 1.5;
+}
+.donation-form .form-group { margin-bottom: 1.1rem; }
+.donation-form label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+  color: var(--color-text-secondary);
+}
+.donation-form input,
+.donation-form textarea {
+  width: 100%;
+  padding: 0.65rem 0.8rem;
+  background: var(--color-input-bg);
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-input-text);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  box-sizing: border-box;
+  transition: border-color 0.2s, background 0.2s;
+}
+.donation-form input:focus,
+.donation-form textarea:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-primary-bg); }
+.amount-presets { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.6rem; }
+.amount-preset {
+  padding: 0.35rem 0.8rem;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.amount-preset:hover, .amount-preset.active { background: var(--color-primary); color: #FFFFFF; border-color: var(--color-primary); }
+.form-error { margin-top: 0.3rem; font-size: 0.8rem; color: var(--color-error-text); }
+.btn--full { width: 100%; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="camp-detail-pg">
+  <header class="site-header" data-header>
+    <div class="container site-header__inner">
+      <a class="brand" href="/" aria-label="ISF">
+        <span class="brand__mark" aria-hidden="true">I</span>
+        <span class="brand__text">INTELLIGENTSIA<span class="brand__sub">Scholarship Fund</span></span>
+      </a>
+      <button class="nav-toggle" type="button" aria-label="Buka menu" aria-expanded="false" aria-controls="camp-det-nav" data-nav-toggle>
+        <span class="nav-toggle__bar"></span>
+        <span class="nav-toggle__bar"></span>
+        <span class="sr-only">Buka menu</span>
+      </button>
+      <nav class="site-nav" id="camp-det-nav" aria-label="Navigasi">
+        <ul class="site-nav__list">
+          <li><a href="/#tentang">Tentang ISF</a></li>
+          <li><a href="/#program">Program</a></li>
+          <li><a href="/fundraising" class="is-active">Penggalangan Dana</a></li>
+          <li><a href="/blog">Blog</a></li>
+          <li><a href="/#cara-daftar">Cara Daftar</a></li>
+        </ul>
+        <div class="site-nav__actions">
+          <button class="theme-toggle" id="theme-toggle-camp-det" aria-label="Ganti tema" title="Ganti tema terang/gelap">
+            <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 2v2m0 16v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M2 12h2m16 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+            <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+          </button>
+          <a class="btn btn--primary btn--sm" href="/auth/register">Daftar Sekarang</a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main class="camp-detail-main" id="main-content">
+    <div class="container">
+      <div class="camp-detail-layout">
+        <!-- Left: campaign detail -->
+        <div>
+          <nav class="camp-breadcrumb" aria-label="Breadcrumb">
+            <a href="/">Beranda</a>
+            <span>/</span>
+            <a href="/fundraising">Kampanye</a>
+            <span>/</span>
+            <span>{{ campaign.title | truncate(50) }}</span>
+          </nav>
+
+          <span class="camp-status-badge camp-status-badge--{{ campaign.status | lower }}">
+            {% if campaign.status === 'ACTIVE' %}Aktif{% elif campaign.status === 'COMPLETED' %}Selesai{% elif campaign.status === 'PAUSED' %}Dijeda{% else %}{{ campaign.status }}{% endif %}
+          </span>
+          <h1 class="camp-detail-title">{{ campaign.title }}</h1>
+          <p class="camp-detail-beneficiary">Untuk: <strong>{{ campaign.beneficiary }}</strong></p>
+
+          {% if campaign.coverImageUrl %}
+          <div class="camp-detail-cover">
+            <img src="{{ campaign.coverImageUrl }}" alt="{{ campaign.title }}" loading="eager">
+          </div>
+          {% endif %}
+
+          <div class="camp-detail-body">
+            {{ campaign.description | escape | replace('\n', '<br>') | safe }}
+          </div>
+
+          {% if campaign.startDate or campaign.endDate %}
+          <div class="camp-detail-dates">
+            {% if campaign.startDate %}<span>Mulai: <strong>{{ campaign.startDate }}</strong></span>{% endif %}
+            {% if campaign.startDate and campaign.endDate %}&nbsp;&nbsp;·&nbsp;&nbsp;{% endif %}
+            {% if campaign.endDate %}<span>Berakhir: <strong>{{ campaign.endDate }}</strong></span>{% endif %}
+          </div>
+          {% endif %}
+
+          {% if isCompleted %}
+          <div style="background:var(--color-info-bg);border:1px solid var(--color-info-border);border-radius:var(--radius-md);padding:1.5rem;margin-top:2rem;text-align:center;">
+            <p style="color:var(--color-info-text);font-weight:600;margin-bottom:0.4rem;">Kampanye Telah Selesai</p>
+            <p style="color:var(--color-text-secondary);font-size:0.9rem;">Terima kasih atas dukungan seluruh donatur. Dana telah berhasil terkumpul dan disalurkan.</p>
+          </div>
+          {% endif %}
+
+          <a href="/fundraising" class="camp-detail-back">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            Lihat Semua Kampanye
+          </a>
+        </div>
+
+        <!-- Right: progress + donation form -->
+        <div class="camp-detail-sidebar">
+          <!-- Progress card -->
+          <div class="camp-progress-card">
+            <div class="camp-raised-amount">Rp {{ campaign.totalRaised | int }}</div>
+            <div class="camp-raised-label">terkumpul dari target <strong style="color:var(--color-text);">Rp {{ campaign.goalAmount | int }}</strong></div>
+            <div class="camp-progress-bar" role="progressbar" aria-valuenow="{{ progressPct }}" aria-valuemin="0" aria-valuemax="100">
+              <div class="camp-progress-bar__fill" style="width:{{ progressPct }}%"></div>
+            </div>
+            <div class="camp-progress-stats">
+              <span>{{ progressPct }}% tercapai</span>
+              <span class="camp-progress-pct">{{ progressPct }}%</span>
+            </div>
+            <div class="camp-stats-row">
+              <div class="camp-stat">
+                <div class="camp-stat__num">{{ campaign.donationCount }}</div>
+                <div class="camp-stat__label">Donatur</div>
+              </div>
+              <div class="camp-stat">
+                <div class="camp-stat__num">{{ progressPct }}%</div>
+                <div class="camp-stat__label">Tercapai</div>
+              </div>
+            </div>
+
+            {% if isActive %}
+            <div class="donation-form-card" style="padding:0;">
+              <h2 style="font-family:var(--font-display);font-size:1.2rem;font-weight:500;margin-bottom:1.25rem;">Donasikan Sekarang</h2>
+
+              <div class="mock-notice">
+                ⚠ <strong>MODE PENGEMBANGAN:</strong> Pembayaran menggunakan mock gateway. Tidak ada transaksi uang nyata yang diproses.
+              </div>
+
+              <form id="donationForm" class="donation-form">
+                <input type="hidden" name="_csrf" value="{{ csrfToken }}">
+                <input type="hidden" name="campaignId" value="{{ campaign.id }}">
+
+                <div class="form-group">
+                  <label>Nominal Donasi (Rp)</label>
+                  <div class="amount-presets">
+                    <button type="button" class="amount-preset" data-amount="10000">Rp 10.000</button>
+                    <button type="button" class="amount-preset" data-amount="25000">Rp 25.000</button>
+                    <button type="button" class="amount-preset" data-amount="50000">Rp 50.000</button>
+                    <button type="button" class="amount-preset" data-amount="100000">Rp 100.000</button>
+                    <button type="button" class="amount-preset" data-amount="250000">Rp 250.000</button>
+                  </div>
+                  <input type="number" id="amount" name="amount" min="1000" step="1000" placeholder="Masukkan nominal (min. Rp 1.000)" required>
+                </div>
+
+                <div class="form-group">
+                  <label>Nama (opsional)</label>
+                  <input type="text" name="donorName" placeholder="Nama Anda">
+                </div>
+
+                <div class="form-group">
+                  <label>Email (opsional)</label>
+                  <input type="email" name="donorEmail" placeholder="email@contoh.com">
+                </div>
+
+                <div class="form-group">
+                  <label>Pesan (opsional)</label>
+                  <textarea name="message" rows="2" placeholder="Pesan untuk penerima manfaat" maxlength="500" style="resize:vertical;"></textarea>
+                </div>
+
+                <div class="form-group" style="display:flex;align-items:center;gap:0.5rem;">
+                  <input type="checkbox" id="isAnonymous" name="isAnonymous" value="true" style="width:auto;accent-color:var(--color-primary);">
+                  <label for="isAnonymous" style="margin-bottom:0;color:var(--color-text-secondary);">Donasi secara anonim</label>
+                </div>
+
+                <div id="donationError" class="form-error" style="display:none;margin-bottom:1rem;"></div>
+
+                <button type="submit" class="btn btn--primary btn--full" id="submitDonation">
+                  Lanjutkan ke Pembayaran
+                </button>
+              </form>
+            </div>
+            {% endif %}
+
+            <!-- Share -->
+            <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--color-border);">
+              <p style="font-size:0.78rem;color:var(--color-text-muted);margin-bottom:0.75rem;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;">Bagikan Kampanye</p>
+              <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                <a href="https://wa.me/?text={{ campaign.title | urlencode }}%20https://isf.id/fundraising/{{ campaign.slug }}" target="_blank" rel="noopener" class="btn btn--ghost btn--sm" style="font-size:0.78rem;">WhatsApp</a>
+                <a href="https://twitter.com/intent/tweet?text={{ campaign.title | urlencode }}&url=https://isf.id/fundraising/{{ campaign.slug }}" target="_blank" rel="noopener" class="btn btn--ghost btn--sm" style="font-size:0.78rem;">Twitter / X</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container site-footer__bottom" style="padding-top:2rem;padding-bottom:2rem;">
+      <p>© {{ year }} Yayasan Intelegensia Nusantara. <a href="/">Beranda</a> · <a href="/blog">Blog</a> · <a href="/fundraising">Kampanye</a> · <a href="/auth/login">Portal</a></p>
+    </div>
+  </footer>
+</div>
+
+<script>
+// Amount preset buttons
+document.querySelectorAll('.amount-preset').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.getElementById('amount').value = this.dataset.amount;
+    document.querySelectorAll('.amount-preset').forEach(function(b) { b.classList.remove('active'); });
+    this.classList.add('active');
+  });
+});
+
+// Donation form submission
+var donForm = document.getElementById('donationForm');
+if (donForm) {
+  donForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var btn = document.getElementById('submitDonation');
+    var errDiv = document.getElementById('donationError');
+    errDiv.style.display = 'none';
+    btn.disabled = true;
+    btn.textContent = 'Memproses...';
+
+    var fd = new FormData(this);
+    var body = {
+      campaignId: fd.get('campaignId'),
+      amount: parseFloat(fd.get('amount')),
+      currency: 'IDR',
+      donorName: fd.get('donorName') || undefined,
+      donorEmail: fd.get('donorEmail') || undefined,
+      message: fd.get('message') || undefined,
+      isAnonymous: fd.get('isAnonymous') === 'true'
+    };
+
+    try {
+      var res = await fetch('/api/v1/donations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': fd.get('_csrf') || ''
+        },
+        body: JSON.stringify(body)
+      });
+      var data = await res.json();
+
+      if (!res.ok) {
+        errDiv.textContent = (data.error || 'Terjadi kesalahan. Silakan coba lagi.');
+        errDiv.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Lanjutkan ke Pembayaran';
+        return;
+      }
+
+      if (data.paymentUrl) {
+        window.location.href = data.paymentUrl;
+      } else {
+        window.location.href = '/fundraising/donate/result?donation_id=' + data.donationId + '&status=pending';
+      }
+    } catch (err) {
+      errDiv.textContent = 'Terjadi kesalahan jaringan. Silakan coba lagi.';
+      errDiv.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Lanjutkan ke Pembayaran';
+    }
+  });
+}
+</script>
+<script src="/js/main.js" defer></script>
+{% endblock %}

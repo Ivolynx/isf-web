@@ -1,0 +1,130 @@
+{% extends "layouts/base.njk" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container section">
+  <div style="max-width: 640px; margin: 2.5rem auto;">
+    <h1>Bukti Donasi</h1>
+
+    <div class="receipt-box">
+      <div class="receipt-header">
+        <div class="receipt-logo">ISF</div>
+        <div>
+          <p class="receipt-title">Intelligentsia Scholarship Fund</p>
+          <p class="receipt-subtitle">Bukti Penerimaan Donasi</p>
+        </div>
+      </div>
+
+      <dl class="receipt-details">
+        <div class="receipt-row">
+          <dt>Nomor Donasi</dt>
+          <dd><code>{{ donation.id | escape }}</code></dd>
+        </div>
+        {% if not donation.isAnonymous and donation.donorName %}
+          <div class="receipt-row">
+            <dt>Nama Donatur</dt>
+            <dd>{{ donation.donorName | escape }}</dd>
+          </div>
+        {% elif donation.isAnonymous %}
+          <div class="receipt-row">
+            <dt>Nama Donatur</dt>
+            <dd><em>Anonim</em></dd>
+          </div>
+        {% endif %}
+        {% if donation.donorEmail %}
+          <div class="receipt-row">
+            <dt>Email</dt>
+            <dd>{{ donation.donorEmail | escape }}</dd>
+          </div>
+        {% endif %}
+        <div class="receipt-row">
+          <dt>Kampanye</dt>
+          <dd>
+            {% if campaign %}
+              <a href="/fundraising/{{ campaign.slug | urlencode }}">{{ campaign.title | escape }}</a>
+            {% else %}
+              <em>Kampanye tidak tersedia</em>
+            {% endif %}
+          </dd>
+        </div>
+        <div class="receipt-row">
+          <dt>Jumlah Donasi</dt>
+          <dd class="receipt-amount">Rp {{ donation.amount | int }}</dd>
+        </div>
+        <div class="receipt-row">
+          <dt>Mata Uang</dt>
+          <dd>{{ donation.currency | escape }}</dd>
+        </div>
+        <div class="receipt-row">
+          <dt>Status Pembayaran</dt>
+          <dd>
+            <span class="status-badge status-badge--{{ donation.status | lower }}">
+              {{ donation.status | escape }}
+            </span>
+          </dd>
+        </div>
+        <div class="receipt-row">
+          <dt>Tanggal Donasi</dt>
+          <dd>{{ donation.createdAt }}</dd>
+        </div>
+        {% if donation.message %}
+          <div class="receipt-row">
+            <dt>Pesan</dt>
+            <dd>{{ donation.message | escape }}</dd>
+          </div>
+        {% endif %}
+      </dl>
+
+      {% if donation.status === 'PAID' %}
+        <div class="receipt-footer receipt-footer--paid">
+          ✓ Pembayaran telah dikonfirmasi
+        </div>
+      {% elif donation.status === 'PENDING' %}
+        <div class="receipt-footer receipt-footer--pending">
+          ⏳ Menunggu konfirmasi pembayaran
+        </div>
+      {% else %}
+        <div class="receipt-footer receipt-footer--other">
+          Status: {{ donation.status | escape }}
+        </div>
+      {% endif %}
+    </div>
+
+    <div style="margin-top: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+      <a href="/fundraising" class="btn btn--secondary">Kampanye Lainnya</a>
+      <button onclick="window.print()" class="btn btn--outline">Cetak Bukti</button>
+    </div>
+
+  </div>
+</div>
+
+<style>
+.receipt-box { background: var(--surface-2); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 2rem; }
+.receipt-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-subtle); }
+.receipt-logo { width: 48px; height: 48px; background: var(--color-accent); color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1rem; border-radius: var(--radius-sm); }
+.receipt-title { font-weight: 700; margin: 0; }
+.receipt-subtitle { color: var(--color-text-muted); font-size: 0.85rem; margin: 0; }
+.receipt-details { margin: 0; }
+.receipt-row { display: flex; justify-content: space-between; padding: 0.625rem 0; border-bottom: 1px solid var(--border-subtle); gap: 1rem; }
+.receipt-row:last-child { border-bottom: none; }
+.receipt-row dt { color: var(--color-text-muted); font-size: 0.875rem; flex-shrink: 0; }
+.receipt-row dd { text-align: right; word-break: break-word; }
+.receipt-amount { font-size: 1.25rem; font-weight: 700; color: var(--color-accent); }
+.receipt-footer { margin-top: 1.5rem; padding: 0.75rem 1rem; border-radius: var(--radius-sm); font-size: 0.875rem; text-align: center; }
+.receipt-footer--paid { background: var(--color-success-bg); color: var(--color-success-text); }
+.receipt-footer--pending { background: var(--color-warning-bg); color: var(--color-warning-text); }
+.receipt-footer--other { background: var(--color-bg-secondary); color: var(--color-text-muted); }
+.status-badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 600; }
+.status-badge--paid { background: var(--color-success-bg); color: var(--color-success-text); }
+.status-badge--pending { background: var(--color-warning-bg); color: var(--color-warning-text); }
+.status-badge--failed { background: rgba(248,113,113,0.15); color: #f87171; }
+.status-badge--expired { background: rgba(148,163,184,0.15); color: #94a3b8; }
+.status-badge--refunded { background: rgba(139,92,246,0.15); color: #a78bfa; }
+@media print {
+  nav, .btn { display: none !important; }
+  body { background: white; color: black; }
+  .receipt-box { border: 1px solid #ccc; }
+}
+</style>
+{% endblock %}

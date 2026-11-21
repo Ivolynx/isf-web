@@ -1,0 +1,93 @@
+{% extends "layouts/admin.njk" %}
+
+{% block title %}Pengajuan Pembiayaan — ISF{% endblock %}
+
+{% block breadcrumb %}
+<a href="/admin" class="admin-breadcrumb__link">Admin</a>
+<span class="admin-breadcrumb__sep">/</span>
+<a href="/admin/scholarship" class="admin-breadcrumb__link">Beasiswa</a>
+<span class="admin-breadcrumb__sep">/</span>
+<span class="admin-breadcrumb__current">Pengajuan Pembiayaan</span>
+{% endblock %}
+
+{% block body %}
+<div class="admin-page-header">
+  <div>
+    <h1 class="admin-page-title">Pengajuan Pembiayaan (Student Loan)</h1>
+    <p class="admin-page-lead">Tinjau dan proses pengajuan pembiayaan mahasiswa.</p>
+  </div>
+</div>
+
+<div class="alert alert--info" style="margin-bottom:1.5rem;padding:0.75rem 1rem;font-size:0.875rem;">
+  <strong>Mode Simulasi:</strong> Tidak ada disbursement uang nyata yang diaktifkan.
+</div>
+
+<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.25rem;">
+  <a href="?status=" class="btn btn--ghost btn--sm {{ 'btn--active' if not statusFilter else '' }}">Semua</a>
+  <a href="?status=SUBMITTED" class="btn btn--ghost btn--sm {{ 'btn--active' if statusFilter === 'SUBMITTED' else '' }}">Diajukan</a>
+  <a href="?status=IN_REVIEW" class="btn btn--ghost btn--sm {{ 'btn--active' if statusFilter === 'IN_REVIEW' else '' }}">Ditinjau</a>
+  <a href="?status=APPROVED" class="btn btn--ghost btn--sm {{ 'btn--active' if statusFilter === 'APPROVED' else '' }}">Disetujui</a>
+  <a href="?status=REJECTED" class="btn btn--ghost btn--sm {{ 'btn--active' if statusFilter === 'REJECTED' else '' }}">Ditolak</a>
+</div>
+
+{% if dbError %}
+<div class="alert alert--warning">{{ dbError }}</div>
+{% endif %}
+
+{% if loans and loans.length > 0 %}
+<div class="table-wrapper">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Mahasiswa</th>
+        <th>Universitas</th>
+        <th>Nominal Diajukan</th>
+        <th>Tenor</th>
+        <th>Status</th>
+        <th>Diajukan</th>
+        <th>Tindakan</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for loan in loans %}
+      <tr>
+        <td>
+          <span style="font-size:0.85rem;">{{ loan.studentId }}</span>
+        </td>
+        <td>{{ loan.universityName }}</td>
+        <td style="font-family:monospace;">Rp {{ loan.requestedAmount | float | round(0) | string }}</td>
+        <td>{{ loan.requestedTenorMonths }} bln</td>
+        <td>
+          <span class="status-badge status-badge--{{ loan.status | lower | replace('_', '-') }}">
+            {{ loan.status | replace('_', ' ') }}
+          </span>
+          {% if loan.isSimulation %}<span style="font-size:0.7rem;color:var(--color-text-muted);display:block;">SIMULASI</span>{% endif %}
+        </td>
+        <td style="font-size:0.82rem;color:var(--color-text-muted);">
+          {{ loan.createdAt | string | truncate(10, true, '') if loan.createdAt else '—' }}
+        </td>
+        <td>
+          <a href="/admin/scholarship/loans/{{ loan.id }}" class="btn btn--ghost btn--sm">Detail</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if total > loans.length %}
+<div style="margin-top:1rem;display:flex;gap:0.5rem;align-items:center;">
+  {% if offset > 0 %}
+  <a href="?status={{ statusFilter or '' }}&offset={{ offset - limit }}" class="btn btn--ghost btn--sm">← Sebelumnya</a>
+  {% endif %}
+  <span style="font-size:0.85rem;color:var(--color-text-muted);">{{ offset + 1 }}–{{ offset + loans.length }} dari {{ total }}</span>
+  {% if offset + loans.length < total %}
+  <a href="?status={{ statusFilter or '' }}&offset={{ offset + limit }}" class="btn btn--ghost btn--sm">Berikutnya →</a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<p style="color:var(--color-text-muted);padding:1rem 0;">Tidak ada pengajuan pembiayaan ditemukan.</p>
+{% endif %}
+{% endblock %}

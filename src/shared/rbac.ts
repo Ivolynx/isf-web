@@ -206,6 +206,11 @@ export const ROLE_PERMISSIONS: Readonly<Record<Role, ReadonlyArray<Permission>>>
     'application:create',
     'application:submit',
     'application:view_own',
+    // Users can submit content (articles) for editorial review.
+    // They can only create/edit their own DRAFT articles — enforced in service.
+    'article:create',
+    'article:edit',
+    'article:submit_review',
   ],
 } as const;
 

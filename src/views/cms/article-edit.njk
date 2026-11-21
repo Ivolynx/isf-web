@@ -1,0 +1,729 @@
+{% extends "layouts/admin.njk" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block head %}
+<!-- Tiptap editor bundle (self-hosted, built with esbuild) -->
+<script src="/js/editor.bundle.js"></script>
+<style>
+/* ---------- Editor layout ---------- */
+.editor-page { display: grid; grid-template-rows: auto 1fr auto; min-height: 100vh; }
+.editor-shell { display: grid; grid-template-columns: 1fr 300px; gap: 0; flex: 1; }
+@media (max-width: 900px) { .editor-shell { grid-template-columns: 1fr; } }
+.editor-area { padding: 2rem 1.5rem; }
+/* Editor sidebar — always dark regardless of theme */
+.editor-sidebar { padding: 1.5rem; border-left: 1px solid rgba(255,255,255,0.08); background: #1E2330; color: #F4F2F2; }
+
+/* ---------- Toolbar ---------- */
+.editor-toolbar {
+  display: flex; flex-wrap: wrap; gap: 0.25rem; margin-bottom: 0.75rem;
+  padding: 0.5rem; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10);
+  border-radius: var(--radius-sm);
+}
+.tb-btn {
+  background: none; border: none; color: #C8DCE0; cursor: pointer;
+  padding: 0.4rem 0.6rem; border-radius: 4px; font-size: 0.85rem;
+  transition: background 0.15s, color 0.15s; line-height: 1;
+}
+.tb-btn:hover { background: rgba(255,255,255,0.10); color: #F4F2F2; }
+.tb-btn.is-active { background: rgba(255,158,32,0.18); color: #FF9E20; }
+.tb-sep { width: 1px; background: rgba(255,255,255,0.12); margin: 0.2rem 0.1rem; }
+
+/* ---------- Editor content area ---------- */
+.ProseMirror {
+  min-height: 400px; padding: 1.25rem; outline: none;
+  background: rgba(255,255,255,0.03); border: 1.5px solid rgba(255,255,255,0.10);
+  border-radius: var(--radius-sm); color: #F4F2F2; font-size: 1rem; line-height: 1.7;
+  transition: border-color 0.2s;
+}
+.ProseMirror:focus { border-color: rgba(255,158,32,0.5); }
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder); color: #90B4BA; pointer-events: none;
+  float: left; height: 0;
+}
+.ProseMirror h1,.ProseMirror h2,.ProseMirror h3 { font-family: var(--font-display); margin: 1.5rem 0 0.75rem; }
+.ProseMirror h1 { font-size: 1.8rem; }
+.ProseMirror h2 { font-size: 1.4rem; }
+.ProseMirror h3 { font-size: 1.2rem; }
+.ProseMirror p { margin: 0 0 0.75rem; }
+.ProseMirror ul,.ProseMirror ol { padding-left: 1.5rem; margin-bottom: 0.75rem; }
+.ProseMirror li { margin-bottom: 0.25rem; }
+.ProseMirror blockquote { border-left: 4px solid #FF9E20; margin: 1rem 0; padding: 0.75rem 1rem; background: rgba(255,255,255,0.04); border-radius: 0 4px 4px 0; }
+.ProseMirror pre { background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 6px; overflow-x: auto; margin-bottom: 0.75rem; }
+.ProseMirror code { background: rgba(0,0,0,0.3); padding: 0.15em 0.4em; border-radius: 3px; font-size: 0.88em; }
+.ProseMirror pre code { background: none; padding: 0; }
+.ProseMirror a { color: #FF9E20; text-decoration: underline; }
+.ProseMirror hr { border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 1.5rem 0; }
+.ProseMirror img { max-width: 100%; height: auto; border-radius: 4px; margin: 0.5rem 0; display: block; }
+.ProseMirror p[style*="text-align: center"],.ProseMirror h1[style*="text-align: center"],.ProseMirror h2[style*="text-align: center"],.ProseMirror h3[style*="text-align: center"] { text-align: center; }
+.ProseMirror p[style*="text-align: right"],.ProseMirror h1[style*="text-align: right"],.ProseMirror h2[style*="text-align: right"],.ProseMirror h3[style*="text-align: right"] { text-align: right; }
+
+/* ---------- Autosave indicator ---------- */
+.autosave-indicator { font-size: 0.78rem; color: #90B4BA; padding: 0.25rem 0; min-height: 1.2rem; }
+.autosave-indicator.saved { color: #74C991; }
+.autosave-indicator.saving { color: #FF9E20; }
+.autosave-indicator.error { color: #E8938A; }
+
+/* ---------- Sidebar ---------- */
+.sidebar-section { margin-bottom: 1.5rem; }
+.sidebar-section__title { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #90B4BA; margin-bottom: 0.75rem; }
+.sidebar-actions { display: flex; flex-direction: column; gap: 0.5rem; }
+.btn--full { width: 100%; }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<a href="/admin/cms">CMS</a>
+<span class="admin-breadcrumb__sep">›</span>
+<span class="admin-breadcrumb__current">{{ 'Edit Artikel' if mode == 'edit' else 'Artikel Baru' }}</span>
+<span class="autosave-indicator" id="autosave-status" aria-live="polite" style="margin-left:1rem;font-size:0.78rem;"></span>
+{% endblock %}
+
+{% block body %}
+<div class="editor-shell">
+    <!-- Main editor area -->
+    <div class="editor-area">
+      <div class="form-group">
+        <label class="form-label form-label--required" for="article-title">Judul Artikel</label>
+        <input
+          type="text" id="article-title" name="title"
+          class="form-input" placeholder="Masukkan judul artikel..."
+          value="{{ article.title if article else '' }}"
+          maxlength="200" required
+        >
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="article-slug">Slug URL</label>
+        <input
+          type="text" id="article-slug" name="slug"
+          class="form-input" placeholder="akan-dibuat-otomatis"
+          value="{{ article.slug if article else '' }}"
+          maxlength="200"
+          pattern="[a-z0-9-]+"
+        >
+        <p style="font-size:0.78rem;color:var(--color-text-muted);margin-top:0.3rem;">Kosongkan untuk dibuat otomatis dari judul.</p>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="article-author-display-name">Penulis</label>
+        <input
+          type="text" id="article-author-display-name" name="authorDisplayName"
+          class="form-input"
+          placeholder="Nama penulis yang ditampilkan di artikel (opsional)..."
+          value="{{ article.authorDisplayName if article and article.authorDisplayName else '' }}"
+          maxlength="200"
+        >
+        <p style="font-size:0.78rem;color:var(--color-text-muted);margin-top:0.3rem;">
+          Kosongkan untuk menggunakan nama akun Anda secara otomatis.
+        </p>
+      </div>
+
+      {# summary is preserved for backward-compatibility and excerpt generation #}
+      <input type="hidden" id="article-summary" name="summary"
+             value="{{ article.summary if article else '' }}">
+
+      <div class="form-group">
+        <label class="form-label form-label--required">Konten Artikel</label>
+
+        <!-- Toolbar -->
+        <div class="editor-toolbar" id="editor-toolbar" role="toolbar" aria-label="Format teks">
+          <button type="button" class="tb-btn" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+          <button type="button" class="tb-btn" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+          <button type="button" class="tb-btn" data-cmd="underline" title="Underline (Ctrl+U)"><u>U</u></button>
+          <button type="button" class="tb-btn" data-cmd="strike" title="Strikethrough"><s>S</s></button>
+          <div class="tb-sep"></div>
+          <button type="button" class="tb-btn" data-cmd="h1" title="Heading 1">H1</button>
+          <button type="button" class="tb-btn" data-cmd="h2" title="Heading 2">H2</button>
+          <button type="button" class="tb-btn" data-cmd="h3" title="Heading 3">H3</button>
+          <div class="tb-sep"></div>
+          <button type="button" class="tb-btn" data-cmd="bulletList" title="Bullet list">• List</button>
+          <button type="button" class="tb-btn" data-cmd="orderedList" title="Numbered list">1. List</button>
+          <div class="tb-sep"></div>
+          <button type="button" class="tb-btn" data-cmd="blockquote" title="Blockquote">❝</button>
+          <button type="button" class="tb-btn" data-cmd="codeBlock" title="Code block">&lt;/&gt;</button>
+          <button type="button" class="tb-btn" data-cmd="hr" title="Horizontal rule">—</button>
+          <div class="tb-sep"></div>
+          <button type="button" class="tb-btn" data-cmd="link" title="Tautan (Ctrl+K)">🔗</button>
+          <button type="button" class="tb-btn" data-cmd="image" title="Sisipkan Gambar dari Komputer" id="btn-insert-image">🖼</button>
+          <div class="tb-sep"></div>
+          <button type="button" class="tb-btn" data-cmd="alignLeft" title="Rata kiri">⬅</button>
+          <button type="button" class="tb-btn" data-cmd="alignCenter" title="Rata tengah">↔</button>
+          <button type="button" class="tb-btn" data-cmd="alignRight" title="Rata kanan">➡</button>
+          <div class="tb-sep"></div>
+          <button type="button" class="tb-btn" data-cmd="undo" title="Undo (Ctrl+Z)">↩</button>
+          <button type="button" class="tb-btn" data-cmd="redo" title="Redo (Ctrl+Y)">↪</button>
+        </div>
+
+        <!-- Tiptap mount point -->
+        <div id="editor"></div>
+        <!-- Hidden input carries the JSON doc -->
+        <input type="hidden" id="body-tiptap-input" name="bodyTiptap">
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="editor-sidebar">
+      <div class="sidebar-section">
+        <h2 class="sidebar-section__title">Aksi</h2>
+        <div class="sidebar-actions">
+          <button type="button" id="btn-save-draft" class="btn btn--ghost btn--full">
+            Simpan Draf
+          </button>
+          {% if article and article.status == 'DRAFT' or article and article.status == 'CHANGES_REQUESTED' or not article %}
+          <button type="button" id="btn-submit-review" class="btn btn--primary btn--full">
+            Kirim untuk Ditinjau
+          </button>
+          {% endif %}
+          {% if article %}
+          <a href="/admin/cms/articles/{{ article.id }}/preview" target="_blank" class="btn btn--ghost btn--full" style="text-align:center;text-decoration:none;display:block;">
+            Preview
+          </a>
+          {% endif %}
+        </div>
+        <div id="form-error" class="alert alert--error" style="display:none;margin-top:0.75rem;"></div>
+      </div>
+
+      {% if article and article.reviewerNotes %}
+      <div class="sidebar-section">
+        <h2 class="sidebar-section__title" style="color:#e74c3c;">Catatan Reviewer</h2>
+        <div style="background:rgba(192,57,43,0.12);border:1px solid rgba(192,57,43,0.3);border-radius:var(--radius-sm);padding:0.75rem;font-size:0.88rem;color:#F4F2F2;">
+          {{ article.reviewerNotes }}
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="sidebar-section">
+        <h2 class="sidebar-section__title">Gambar Sampul</h2>
+        <!-- Hidden: stores the final URL submitted with the form -->
+        <input type="hidden" id="cover-image-url" name="coverImageUrl"
+               value="{{ article.coverImageUrl if article and article.coverImageUrl else '' }}">
+        <!-- Preview area -->
+        <div id="cover-preview-wrap">
+          {% if article and article.coverImageUrl %}
+          <img id="cover-preview" src="{{ article.coverImageUrl }}" alt="Preview gambar sampul"
+               style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:var(--radius-sm);margin-bottom:0.5rem;display:block;">
+          {% else %}
+          <div id="cover-placeholder" style="width:100%;aspect-ratio:16/9;background:rgba(255,255,255,0.04);border:1.5px dashed rgba(255,255,255,0.15);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;margin-bottom:0.5rem;color:#90B4BA;font-size:0.82rem;">
+            Belum ada gambar
+          </div>
+          {% endif %}
+        </div>
+        <!-- Upload or URL options -->
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.4rem;">
+          <button type="button" id="btn-upload-cover" class="btn btn--ghost btn--sm" style="font-size:0.8rem;" title="Unggah dari komputer">
+            📤 Unggah
+          </button>
+          <button type="button" id="btn-url-cover" class="btn btn--ghost btn--sm" style="font-size:0.8rem;" title="Gunakan URL gambar">
+            🔗 URL
+          </button>
+          <button type="button" id="btn-remove-cover" class="btn btn--ghost btn--sm" style="font-size:0.8rem;display:{{ 'none' if not (article and article.coverImageUrl) else 'inline-flex' }};">
+            ✕ Hapus
+          </button>
+        </div>
+        <!-- URL input panel (hidden by default) -->
+        <div id="cover-url-panel" style="display:none;margin-bottom:0.4rem;">
+          <input type="text" id="cover-url-input" class="form-input" style="font-size:0.82rem;"
+                 placeholder="https://example.com/gambar.jpg"
+                 aria-label="URL gambar sampul">
+          <div style="display:flex;gap:0.4rem;margin-top:0.4rem;">
+            <button type="button" id="btn-url-apply" class="btn btn--secondary btn--sm" style="font-size:0.78rem;">Terapkan</button>
+            <button type="button" id="btn-url-cancel" class="btn btn--ghost btn--sm" style="font-size:0.78rem;">Batal</button>
+          </div>
+        </div>
+        <p id="cover-status" style="font-size:0.75rem;color:#90B4BA;margin-top:0.35rem;min-height:1em;" aria-live="polite"></p>
+      </div>
+
+      {% if categories and categories.length > 0 %}
+      <div class="sidebar-section">
+        <h2 class="sidebar-section__title">Kategori</h2>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;">
+          {% for cat in categories %}
+          <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.88rem;cursor:pointer;">
+            <input
+              type="checkbox" name="categoryIds" value="{{ cat.id }}"
+              {% if article and article.categories %}
+                {% for c in article.categories %}{% if c.id == cat.id %}checked{% endif %}{% endfor %}
+              {% endif %}
+            >
+            {{ cat.name }}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      {% if tags and tags.length > 0 %}
+      <div class="sidebar-section">
+        <h2 class="sidebar-section__title">Tag</h2>
+        <div style="display:flex;flex-wrap:wrap;gap:0.4rem;">
+          {% for tag in tags %}
+          <label style="display:flex;align-items:center;gap:0.35rem;font-size:0.82rem;cursor:pointer;background:rgba(255,255,255,0.04);padding:0.25rem 0.5rem;border-radius:var(--radius-pill);">
+            <input
+              type="checkbox" name="tagIds" value="{{ tag.id }}"
+              {% if article and article.tags %}
+                {% for t in article.tags %}{% if t.id == tag.id %}checked{% endif %}{% endfor %}
+              {% endif %}
+            >
+            {{ tag.name }}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="sidebar-section">
+        <h2 class="sidebar-section__title">Catatan Revisi</h2>
+        <textarea
+          id="revision-note" name="revisionNote"
+          class="form-input" rows="2"
+          placeholder="Opsional: deskripsikan perubahan..."
+          maxlength="200"
+        ></textarea>
+      </div>
+    </aside>
+  </div>
+
+</div>
+
+<script>
+(function() {
+  // ---------------------------------------------------------------------------
+  // Constants from Nunjucks template
+  // ---------------------------------------------------------------------------
+  var MODE = '{{ mode }}';
+  var ARTICLE_ID = '{{ article.id if article else "" }}';
+  var CSRF_TOKEN = '{{ csrfToken }}';
+  var INITIAL_CONTENT = {{ article.bodyTiptap | dump | safe if article and article.bodyTiptap else 'null' }};
+
+  // ---------------------------------------------------------------------------
+  // Tiptap editor initialisation — uses self-hosted ISFEditor bundle
+  // ---------------------------------------------------------------------------
+  if (!window.ISFEditor || !window.ISFEditor.Editor) {
+    document.getElementById('editor').innerHTML =
+      '<p style="color:var(--color-error-text);padding:1rem;border:1px solid rgba(192,57,43,0.3);border-radius:6px;">' +
+      'Editor tidak dapat dimuat. Muat ulang halaman.</p>';
+    return;
+  }
+
+  var TiptapEditor   = window.ISFEditor.Editor;
+  var StarterKit     = window.ISFEditor.StarterKit;
+  var Link           = window.ISFEditor.Link;
+  var Underline      = window.ISFEditor.Underline;
+  var Placeholder    = window.ISFEditor.Placeholder;
+  var TextAlign      = window.ISFEditor.TextAlign;
+  var Image          = window.ISFEditor.Image;
+
+  // Determine initial content
+  var initialDoc = null;
+  if (INITIAL_CONTENT && INITIAL_CONTENT.type === 'doc') {
+    initialDoc = INITIAL_CONTENT;
+  }
+
+  var editor = new TiptapEditor({
+    element: document.getElementById('editor'),
+    extensions: [
+      StarterKit,
+      Link.configure({ openOnClick: false, autolink: true }),
+      Underline,
+      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      Image.configure({ inline: false, allowBase64: false }),
+      Placeholder.configure({ placeholder: 'Mulai menulis artikel Anda di sini...' }),
+    ],
+    content: initialDoc || '',
+    onUpdate: function() {
+      syncEditorToInput();
+      scheduleAutosave();
+    },
+  });
+
+  function syncEditorToInput() {
+    const jsonDoc = editor.getJSON();
+    document.getElementById('body-tiptap-input').value = JSON.stringify(jsonDoc);
+  }
+
+  // Initial sync
+  syncEditorToInput();
+
+  // ---------------------------------------------------------------------------
+  // Toolbar button handlers
+  // ---------------------------------------------------------------------------
+  document.getElementById('editor-toolbar').addEventListener('click', function(e) {
+    const btn = e.target.closest('[data-cmd]');
+    if (!btn) return;
+    const cmd = btn.dataset.cmd;
+    switch(cmd) {
+      case 'bold': editor.chain().focus().toggleBold().run(); break;
+      case 'italic': editor.chain().focus().toggleItalic().run(); break;
+      case 'underline': editor.chain().focus().toggleUnderline().run(); break;
+      case 'strike': editor.chain().focus().toggleStrike().run(); break;
+      case 'h1': editor.chain().focus().toggleHeading({ level: 1 }).run(); break;
+      case 'h2': editor.chain().focus().toggleHeading({ level: 2 }).run(); break;
+      case 'h3': editor.chain().focus().toggleHeading({ level: 3 }).run(); break;
+      case 'bulletList': editor.chain().focus().toggleBulletList().run(); break;
+      case 'orderedList': editor.chain().focus().toggleOrderedList().run(); break;
+      case 'blockquote': editor.chain().focus().toggleBlockquote().run(); break;
+      case 'codeBlock': editor.chain().focus().toggleCodeBlock().run(); break;
+      case 'hr': editor.chain().focus().setHorizontalRule().run(); break;
+      case 'link': {
+        var url = window.prompt('URL tautan:');
+        if (url) { editor.chain().focus().setLink({ href: url }).run(); }
+        break;
+      }
+      case 'image': {
+        // File upload — handled by dedicated button listener below
+        document.getElementById('btn-insert-image').click();
+        break;
+      }
+      case 'alignLeft':   editor.chain().focus().setTextAlign('left').run(); break;
+      case 'alignCenter': editor.chain().focus().setTextAlign('center').run(); break;
+      case 'alignRight':  editor.chain().focus().setTextAlign('right').run(); break;
+      case 'undo': editor.chain().focus().undo().run(); break;
+      case 'redo': editor.chain().focus().redo().run(); break;
+    }
+    updateToolbarState();
+  });
+
+  function updateToolbarState() {
+    var btns = document.querySelectorAll('[data-cmd]');
+    btns.forEach(function(btn) {
+      var cmd = btn.dataset.cmd;
+      var active = false;
+      switch(cmd) {
+        case 'bold':        active = editor.isActive('bold'); break;
+        case 'italic':      active = editor.isActive('italic'); break;
+        case 'underline':   active = editor.isActive('underline'); break;
+        case 'strike':      active = editor.isActive('strike'); break;
+        case 'h1':          active = editor.isActive('heading', { level: 1 }); break;
+        case 'h2':          active = editor.isActive('heading', { level: 2 }); break;
+        case 'h3':          active = editor.isActive('heading', { level: 3 }); break;
+        case 'bulletList':  active = editor.isActive('bulletList'); break;
+        case 'orderedList': active = editor.isActive('orderedList'); break;
+        case 'blockquote':  active = editor.isActive('blockquote'); break;
+        case 'codeBlock':   active = editor.isActive('codeBlock'); break;
+        case 'link':        active = editor.isActive('link'); break;
+        case 'alignLeft':   active = editor.isActive({ textAlign: 'left' }); break;
+        case 'alignCenter': active = editor.isActive({ textAlign: 'center' }); break;
+        case 'alignRight':  active = editor.isActive({ textAlign: 'right' }); break;
+      }
+      btn.classList.toggle('is-active', active);
+    });
+  }
+
+  editor.on('selectionUpdate', updateToolbarState);
+  editor.on('update', updateToolbarState);
+
+  // ---------------------------------------------------------------------------
+  // Collect form data
+  // ---------------------------------------------------------------------------
+  function collectFormData() {
+    var title = document.getElementById('article-title').value.trim();
+    var slug = document.getElementById('article-slug').value.trim();
+    var summary = document.getElementById('article-summary').value.trim();
+    var authorDisplayNameEl = document.getElementById('article-author-display-name');
+    var authorDisplayName = authorDisplayNameEl ? authorDisplayNameEl.value.trim() : '';
+    var coverImageUrl = document.getElementById('cover-image-url').value.trim();
+    var revisionNote = document.getElementById('revision-note').value.trim();
+    var bodyTiptapRaw = document.getElementById('body-tiptap-input').value;
+    var bodyTiptap;
+    try { bodyTiptap = JSON.parse(bodyTiptapRaw || 'null'); } catch(e) { bodyTiptap = null; }
+
+    var categoryCheckboxes = document.querySelectorAll('input[name="categoryIds"]:checked');
+    var tagCheckboxes = document.querySelectorAll('input[name="tagIds"]:checked');
+    var categoryIds = Array.from(categoryCheckboxes).map(function(cb) { return cb.value; });
+    var tagIds = Array.from(tagCheckboxes).map(function(cb) { return cb.value; });
+
+    return { title: title, slug: slug, summary: summary, authorDisplayName: authorDisplayName || undefined, coverImageUrl: coverImageUrl, revisionNote: revisionNote, bodyTiptap: bodyTiptap, categoryIds: categoryIds, tagIds: tagIds };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Save draft
+  // ---------------------------------------------------------------------------
+  function saveDraft() {
+    var data = collectFormData();
+    if (!data.title) {
+      showError('Judul artikel wajib diisi.');
+      return Promise.resolve(null);
+    }
+
+    setStatus('saving', 'Menyimpan...');
+    hideError();
+
+    var url, method;
+    if (MODE === 'create' || !ARTICLE_ID) {
+      url = '/api/v1/articles';
+      method = 'POST';
+    } else {
+      url = '/api/v1/articles/' + ARTICLE_ID;
+      method = 'PUT';
+    }
+
+    return fetch(url, {
+      method: method,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': CSRF_TOKEN,
+      },
+      body: JSON.stringify(data),
+    }).then(function(resp) {
+      return resp.json().then(function(result) {
+        if (!resp.ok) {
+          var msg = result.error || 'Gagal menyimpan artikel.';
+          setStatus('error', '\u2717 ' + msg);
+          showError(msg);
+          return null;
+        }
+        setStatus('saved', '\u2713 Tersimpan');
+        // If this was a create, redirect to edit page
+        if (MODE === 'create' && result.article && result.article.id) {
+          window.location.href = '/admin/cms/articles/' + result.article.id + '/edit';
+        }
+        return result.article;
+      });
+    }).catch(function(err) {
+      setStatus('error', '\u2717 Koneksi gagal');
+      showError('Gagal menyimpan: ' + err.message);
+      return null;
+    });
+  }
+
+  document.getElementById('btn-save-draft').addEventListener('click', function() {
+    saveDraft();
+  });
+
+  // ---------------------------------------------------------------------------
+  // Image insert via file upload
+  // ---------------------------------------------------------------------------
+  document.getElementById('btn-insert-image').addEventListener('click', function() {
+    if (!window.ISFEditor || !window.ISFEditor.uploadAndInsertImage) {
+      showError('Fungsi upload gambar tidak tersedia. Muat ulang halaman.');
+      return;
+    }
+    window.ISFEditor.uploadAndInsertImage(editor, CSRF_TOKEN, function(msg, isError) {
+      setStatus(isError ? 'error' : 'saved', msg);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Cover image upload
+  // ---------------------------------------------------------------------------
+  (function() {
+    var coverInput = document.createElement('input');
+    coverInput.type = 'file';
+    coverInput.accept = 'image/jpeg,image/png,image/webp';
+    coverInput.style.display = 'none';
+    document.body.appendChild(coverInput);
+
+    function setCoverUrl(url) {
+      document.getElementById('cover-image-url').value = url || '';
+      var preview = document.getElementById('cover-preview');
+      var placeholder = document.getElementById('cover-placeholder');
+      var removeBtn = document.getElementById('btn-remove-cover');
+
+      if (url) {
+        if (preview) {
+          preview.src = url;
+          preview.style.display = 'block';
+        } else {
+          // Create preview element if it didn't exist
+          var img = document.createElement('img');
+          img.id = 'cover-preview';
+          img.src = url;
+          img.alt = 'Preview gambar sampul';
+          img.style.cssText = 'width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:var(--radius-sm);margin-bottom:0.5rem;display:block;';
+          var wrap = document.getElementById('cover-preview-wrap');
+          if (placeholder) placeholder.style.display = 'none';
+          wrap.insertBefore(img, wrap.firstChild);
+        }
+        if (placeholder) placeholder.style.display = 'none';
+        if (removeBtn) removeBtn.style.display = 'inline-flex';
+      } else {
+        if (preview) preview.style.display = 'none';
+        if (placeholder) placeholder.style.display = 'flex';
+        if (removeBtn) removeBtn.style.display = 'none';
+      }
+    }
+
+    document.getElementById('btn-upload-cover').addEventListener('click', function() {
+      coverInput.click();
+    });
+
+    document.getElementById('btn-remove-cover').addEventListener('click', function() {
+      setCoverUrl(null);
+      document.getElementById('cover-status').textContent = 'Gambar sampul dihapus.';
+    });
+
+    coverInput.addEventListener('change', function() {
+      var file = coverInput.files && coverInput.files[0];
+      if (!file) return;
+      coverInput.value = '';
+
+      if (!window.ISFEditor || !window.ISFEditor.uploadCoverImage) {
+        document.getElementById('cover-status').textContent = 'Fungsi upload tidak tersedia.';
+        return;
+      }
+
+      window.ISFEditor.uploadCoverImage(file, CSRF_TOKEN, function(msg, isError) {
+        document.getElementById('cover-status').textContent = msg;
+        document.getElementById('cover-status').style.color = isError ? 'var(--color-error-text)' : 'var(--color-success-text)';
+      }).then(function(result) {
+        if (result && result.url) {
+          setCoverUrl(result.url);
+        }
+      });
+    });
+
+    // ---- URL option ----
+    var urlBtn = document.getElementById('btn-url-cover');
+    var urlPanel = document.getElementById('cover-url-panel');
+    var urlInputEl = document.getElementById('cover-url-input');
+    var urlApply = document.getElementById('btn-url-apply');
+    var urlCancel = document.getElementById('btn-url-cancel');
+
+    function closeCoverUrlPanel() {
+      urlPanel.style.display = 'none';
+      urlInputEl.value = '';
+    }
+
+    if (urlBtn) {
+      urlBtn.addEventListener('click', function() {
+        urlPanel.style.display = urlPanel.style.display === 'none' ? 'block' : 'none';
+        if (urlPanel.style.display === 'block') urlInputEl.focus();
+      });
+    }
+    if (urlCancel) {
+      urlCancel.addEventListener('click', function() {
+        closeCoverUrlPanel();
+        document.getElementById('cover-status').textContent = '';
+      });
+    }
+    if (urlApply) {
+      urlApply.addEventListener('click', function() {
+        var raw = urlInputEl.value.trim();
+        var statusEl = document.getElementById('cover-status');
+        if (!raw) {
+          statusEl.textContent = 'Masukkan URL gambar.';
+          statusEl.style.color = 'var(--color-error-text)';
+          return;
+        }
+        var lower = raw.toLowerCase();
+        if (lower.startsWith('javascript:') || lower.startsWith('data:') || lower.startsWith('vbscript:')) {
+          statusEl.textContent = 'URL tidak diizinkan (javascript:/data: diblokir).';
+          statusEl.style.color = 'var(--color-error-text)';
+          return;
+        }
+        if (!lower.startsWith('https://') && !lower.startsWith('http://')) {
+          statusEl.textContent = 'URL harus dimulai dengan https:// atau http://';
+          statusEl.style.color = 'var(--color-error-text)';
+          return;
+        }
+        setCoverUrl(raw);
+        closeCoverUrlPanel();
+        statusEl.textContent = 'URL gambar diterapkan.';
+        statusEl.style.color = 'var(--color-success-text)';
+      });
+    }
+    if (urlInputEl) {
+      urlInputEl.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); if (urlApply) urlApply.click(); }
+        if (e.key === 'Escape') { if (urlCancel) urlCancel.click(); }
+      });
+    }
+  })();
+
+  // ---------------------------------------------------------------------------
+  // Submit for review
+  // ---------------------------------------------------------------------------
+  var submitBtn = document.getElementById('btn-submit-review');
+  if (submitBtn) {
+    submitBtn.addEventListener('click', function() {
+      // First save the current state
+      saveDraft().then(function(article) {
+        if (!article) return;
+
+        var articleId = article.id || ARTICLE_ID;
+        if (!articleId) { showError('Simpan artikel terlebih dahulu.'); return; }
+
+        setStatus('saving', 'Mengirim untuk ditinjau...');
+
+        fetch('/api/v1/articles/' + articleId + '/submit', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': CSRF_TOKEN,
+          },
+          body: JSON.stringify({}),
+        }).then(function(resp) {
+          if (!resp.ok) {
+            return resp.json().then(function(result) {
+              showError(result.error || 'Gagal mengirim artikel untuk ditinjau.');
+              setStatus('error', '\u2717 Gagal mengirim');
+            });
+          }
+          setStatus('saved', '\u2713 Dikirim untuk ditinjau');
+          setTimeout(function() {
+            window.location.href = '/admin/cms/articles/' + articleId;
+          }, 1000);
+        }).catch(function(err) {
+          showError('Koneksi gagal: ' + err.message);
+          setStatus('error', '\u2717 Koneksi gagal');
+        });
+      });
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Autosave (debounced, only for existing articles)
+  // ---------------------------------------------------------------------------
+  var autosaveTimer = null;
+  function scheduleAutosave() {
+    if (MODE !== 'edit' || !ARTICLE_ID) return;
+    clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(function() {
+      saveDraft();
+    }, 3000);
+  }
+
+  // ---------------------------------------------------------------------------
+  // UI helpers
+  // ---------------------------------------------------------------------------
+  function setStatus(state, msg) {
+    var el = document.getElementById('autosave-status');
+    el.className = 'autosave-indicator ' + state;
+    el.textContent = msg;
+  }
+
+  function showError(msg) {
+    var el = document.getElementById('form-error');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  function hideError() {
+    var el = document.getElementById('form-error');
+    el.style.display = 'none';
+  }
+
+  // Warn before leaving with unsaved changes
+  var isDirty = false;
+  editor.on('update', function() { isDirty = true; });
+  window.addEventListener('beforeunload', function(e) {
+    if (isDirty) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+  document.getElementById('btn-save-draft').addEventListener('click', function() {
+    isDirty = false;
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      e.preventDefault();
+      document.getElementById('btn-save-draft').click();
+    }
+  });
+})();
+</script>
+{% endblock %}

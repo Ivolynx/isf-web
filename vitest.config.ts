@@ -13,7 +13,7 @@ export default defineConfig({
     },
     // Load test environment variables before any test file
     setupFiles: ['tests/setup.ts'],
-    // Pool: forks to avoid module singleton conflicts between test suites
-    pool: 'forks',
+    // Pool: threads — forks requires node in PATH; vmThreads breaks vite-node module resolution
+    pool: 'threads',
   },
 });

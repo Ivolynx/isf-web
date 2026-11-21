@@ -1,37 +1,110 @@
 /**
- * Storage module — boundary stub.
+ * Storage module — S3-compatible object storage via AWS SDK v3.
  *
- * Phase 2 will implement S3-compatible object storage helpers.
+ * Uses MinIO locally (docker-compose) and any S3-compatible backend in production.
+ * All configuration comes exclusively from environment variables — no hardcoded credentials.
  *
- * Two buckets are required:
- *
- *   isf-private-docs    — applicant documents (transcripts, IDs, essays)
- *     Access: private — NO public URLs
- *     Access method: short-lived signed URLs (TTL 5 minutes) generated
- *                    server-side only after authorization check
- *
- *   isf-public-assets   — CMS article cover images, campaign banners
- *     Access: public read
- *
- * Upload flow (private documents):
- *   1. Client POSTs multipart form to server endpoint
- *   2. Server validates MIME type (magic bytes via file-type package)
- *   3. Server enforces per-document-type size limits
- *   4. Server streams to S3 via AWS SDK
- *   5. Server stores the S3 object KEY (not URL) in the database
- *   6. Temp file is deleted immediately after upload
- *
- * Signed URL generation (private documents):
- *   1. Server verifies session + resource ownership/role
- *   2. Server calls S3 getSignedUrl with 5-minute TTL
- *   3. Server returns signed URL in JSON response
- *   4. Client uses the URL directly (no proxy required)
- *
- * For local development: MinIO is used as an S3-compatible storage backend.
- * The storage client must be configured via environment variables only.
- * AWS credentials must NEVER be hard-coded.
- *
- * See docs/adr/006-storage.md for full design.
+ * Two buckets:
+ *   isf-private-docs    — private; accessed only via short-lived signed URLs
+ *   isf-public-assets   — public read; CMS cover images and campaign banners
  */
 
-export {};
+import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { env } from '../../config/env.js';
+
+// ---------------------------------------------------------------------------
+// S3 client singleton
+// ---------------------------------------------------------------------------
+
+let _s3Client: S3Client | null = null;
+
+function getS3Client(): S3Client {
+  if (_s3Client) return _s3Client;
+
+  _s3Client = new S3Client({
+    endpoint: env.STORAGE_ENDPOINT,
+    region: env.STORAGE_REGION,
+    credentials: {
+      accessKeyId: env.STORAGE_ACCESS_KEY_ID,
+      secretAccessKey: env.STORAGE_SECRET_ACCESS_KEY,
+    },
+    // Required for MinIO path-style URLs (http://localhost:9000/bucket/key)
+    forcePathStyle: true,
+  });
+
+  return _s3Client;
+}
+
+// ---------------------------------------------------------------------------
+// Upload a Buffer to the public assets bucket
+// ---------------------------------------------------------------------------
+
+export interface UploadResult {
+  /** Object key stored in S3/MinIO (use this in the database, not a full URL) */
+  key: string;
+  /** Full public URL to access the object */
+  publicUrl: string;
+}
+
+/**
+ * Upload a file buffer to the public assets bucket.
+ *
+ * @param key        Object key (e.g. "cms/images/abc123.jpg")
+ * @param body       File contents as a Buffer
+ * @param mimeType   MIME type (e.g. "image/jpeg")
+ */
+export async function uploadPublicAsset(
+  key: string,
+  body: Buffer,
+  mimeType: string,
+): Promise<UploadResult> {
+  const client = getS3Client();
+  const bucket = env.STORAGE_BUCKET_PUBLIC;
+
+  await client.send(
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: body,
+      ContentType: mimeType,
+      // Public read is set at bucket level by minio-init; no per-object ACL needed
+    }),
+  );
+
+  // Construct the public URL from the configured endpoint
+  const endpoint = env.STORAGE_ENDPOINT.replace(/\/$/, '');
+  const publicUrl = `${endpoint}/${bucket}/${key}`;
+
+  return { key, publicUrl };
+}
+
+/**
+ * Delete an object from the public assets bucket.
+ *
+ * @param key  Object key to delete
+ */
+export async function deletePublicAsset(key: string): Promise<void> {
+  const client = getS3Client();
+  await client.send(
+    new DeleteObjectCommand({
+      Bucket: env.STORAGE_BUCKET_PUBLIC,
+      Key: key,
+    }),
+  );
+}
+
+/**
+ * Generate a short-lived signed URL for a private document.
+ *
+ * @param key     Object key in the private bucket
+ * @param ttlSec  URL lifetime in seconds (default 300 = 5 minutes)
+ */
+export async function getPrivateSignedUrl(key: string, ttlSec = 300): Promise<string> {
+  const client = getS3Client();
+  const command = new GetObjectCommand({
+    Bucket: env.STORAGE_BUCKET_PRIVATE,
+    Key: key,
+  });
+  return getSignedUrl(client, command, { expiresIn: ttlSec });
+}

@@ -1,39 +1,18 @@
-{% extends "layouts/base.njk" %}
+{% extends "layouts/admin.njk" %}
 
 {% block title %}User Management — ISF{% endblock %}
 
+{% block breadcrumb %}
+<a href="/owner">Owner Dashboard</a>
+<span class="admin-breadcrumb__sep">›</span>
+<span class="admin-breadcrumb__current">User Management</span>
+{% endblock %}
+
 {% block body %}
-<div class="portal-page">
-  <header class="portal-header">
-    <a class="brand" href="/" aria-label="ISF home">
-      <span class="brand__mark" aria-hidden="true">I</span>
-      <span><span class="brand__name">ISF</span><span class="brand__sub">Intelegensia</span></span>
-    </a>
-    <div class="portal-header__actions">
-      <div class="portal-user">
-        <span class="portal-user__name">{{ displayName or userEmail }}</span>
-        <span class="portal-user__role" style="background:rgba(242,193,78,0.2);color:#F2C14E;border-color:rgba(242,193,78,0.5);">OWNER</span>
-      </div>
-      <form class="logout-form" method="POST" action="/auth/logout">
-        <input type="hidden" name="_csrf" value="{{ csrfToken }}">
-        <button class="btn btn--ghost btn--sm" type="submit">Sign out</button>
-      </form>
-    </div>
-  </header>
-
-  <nav class="portal-nav" aria-label="Owner navigation">
-    <ul class="portal-nav__list">
-      <li><a href="/owner">Owner Dashboard</a></li>
-      <li><a href="/owner/users" class="is-active" aria-current="page">Users</a></li>
-      <li><a href="/owner/invitations">Invitations</a></li>
-    </ul>
-  </nav>
-
-  <main class="portal-main" id="main-content">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
       <div>
         <h1 class="portal-main__heading" style="margin-bottom:0.25rem;">Users</h1>
-        <p style="color:var(--cream-400);font-size:0.9rem;margin:0;">{{ total }} account{{ 's' if total != 1 }}</p>
+        <p style="color:var(--color-text-muted);font-size:0.9rem;margin:0;">{{ total }} account{{ 's' if total != 1 }}</p>
       </div>
       <a class="btn btn--primary btn--sm" href="/owner/invitations">Invite user</a>
     </div>
@@ -54,34 +33,34 @@
       {% endif %}
     </form>
 
-    <div style="overflow-x:auto;">
-      <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+    <div class="data-table-wrap">
+      <table class="data-table" style="width:100%;font-size:0.85rem;">
         <thead>
           <tr>
-            <th style="text-align:left;padding:0.5rem 0.75rem;border-bottom:1px solid var(--navy-700);color:var(--cream-400);font-size:0.72rem;letter-spacing:0.07em;text-transform:uppercase;font-weight:600;">Email</th>
-            <th style="text-align:left;padding:0.5rem 0.75rem;border-bottom:1px solid var(--navy-700);color:var(--cream-400);font-size:0.72rem;letter-spacing:0.07em;text-transform:uppercase;font-weight:600;">Name</th>
-            <th style="text-align:left;padding:0.5rem 0.75rem;border-bottom:1px solid var(--navy-700);color:var(--cream-400);font-size:0.72rem;letter-spacing:0.07em;text-transform:uppercase;font-weight:600;">Role</th>
-            <th style="text-align:left;padding:0.5rem 0.75rem;border-bottom:1px solid var(--navy-700);color:var(--cream-400);font-size:0.72rem;letter-spacing:0.07em;text-transform:uppercase;font-weight:600;">Status</th>
-            <th style="text-align:left;padding:0.5rem 0.75rem;border-bottom:1px solid var(--navy-700);color:var(--cream-400);font-size:0.72rem;letter-spacing:0.07em;text-transform:uppercase;font-weight:600;">Verified</th>
-            <th style="text-align:left;padding:0.5rem 0.75rem;border-bottom:1px solid var(--navy-700);color:var(--cream-400);font-size:0.72rem;letter-spacing:0.07em;text-transform:uppercase;font-weight:600;"></th>
+            <th style="text-align:left;padding:0.5rem 0.75rem;">Email</th>
+            <th style="text-align:left;padding:0.5rem 0.75rem;">Name</th>
+            <th style="text-align:left;padding:0.5rem 0.75rem;">Role</th>
+            <th style="text-align:left;padding:0.5rem 0.75rem;">Status</th>
+            <th style="text-align:left;padding:0.5rem 0.75rem;">Verified</th>
+            <th style="text-align:left;padding:0.5rem 0.75rem;"></th>
           </tr>
         </thead>
         <tbody>
           {% for u in users %}
-          <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
-            <td style="padding:0.65rem 0.75rem;color:var(--cream-100);">{{ u.email }}</td>
-            <td style="padding:0.65rem 0.75rem;color:var(--cream-400);">{{ u.displayName or '—' }}</td>
+          <tr>
+            <td style="padding:0.65rem 0.75rem;">{{ u.email }}</td>
+            <td style="padding:0.65rem 0.75rem;color:var(--color-text-secondary);">{{ u.displayName or '—' }}</td>
             <td style="padding:0.65rem 0.75rem;">
-              <span class="portal-user__role badge-role-{{ u.role | lower }}" style="font-size:0.7rem;padding:0.2em 0.55rem;border-radius:999px;font-weight:600;letter-spacing:0.07em;{% if u.role == 'OWNER' %}background:rgba(242,193,78,0.15);color:#F2C14E;border:1px solid rgba(242,193,78,0.4);{% elif u.role == 'ADMIN' %}background:rgba(192,57,43,0.12);color:#f0b6b0;border:1px solid rgba(192,57,43,0.35);{% elif u.role == 'EDITOR' %}background:rgba(59,130,212,0.1);color:#7eb8f5;border:1px solid rgba(59,130,212,0.3);{% elif u.role == 'REVIEWER' %}background:rgba(39,174,96,0.1);color:#7be0a5;border:1px solid rgba(39,174,96,0.3);{% else %}background:rgba(255,255,255,0.05);color:var(--cream-400);border:1px solid rgba(255,255,255,0.1);{% endif %}">{{ u.role }}</span>
+              <span class="role-badge role-badge--{{ u.role | lower }}">{{ u.role }}</span>
             </td>
             <td style="padding:0.65rem 0.75rem;">
               {% if u.isActive %}
-              <span style="color:#7be0a5;font-size:0.8rem;">Active</span>
+              <span style="color:var(--color-success-text);font-size:0.8rem;font-weight:600;">● Active</span>
               {% else %}
-              <span style="color:#f0b6b0;font-size:0.8rem;">Disabled</span>
+              <span style="color:var(--color-error-text);font-size:0.8rem;font-weight:600;">● Disabled</span>
               {% endif %}
             </td>
-            <td style="padding:0.65rem 0.75rem;color:var(--cream-400);font-size:0.8rem;">
+            <td style="padding:0.65rem 0.75rem;color:var(--color-text-muted);font-size:0.8rem;">
               {% if u.emailVerifiedAt %}✓ Verified{% else %}Pending{% endif %}
             </td>
             <td style="padding:0.65rem 0.75rem;">
@@ -90,7 +69,7 @@
           </tr>
           {% else %}
           <tr>
-            <td colspan="6" style="padding:2rem;text-align:center;color:var(--cream-400);">
+            <td colspan="6" style="padding:2rem;text-align:center;color:var(--color-text-muted);">
               {% if search %}No users found matching "{{ search }}".{% else %}No users yet.{% endif %}
             </td>
           </tr>
@@ -104,14 +83,10 @@
       {% if page > 1 %}
       <a class="btn btn--ghost btn--sm" href="/owner/users?q={{ search }}&page={{ page - 1 }}">Previous</a>
       {% endif %}
-      <span style="padding:0.55rem 1rem;color:var(--cream-400);font-size:0.85rem;">{{ page }} / {{ totalPages }}</span>
+      <span style="padding:0.55rem 1rem;color:var(--color-text-muted);font-size:0.85rem;">{{ page }} / {{ totalPages }}</span>
       {% if page < totalPages %}
       <a class="btn btn--ghost btn--sm" href="/owner/users?q={{ search }}&page={{ page + 1 }}">Next</a>
       {% endif %}
     </div>
     {% endif %}
-  </main>
-
-  <footer class="auth-footer">&copy; {{ year }} Intelligentsia Scholarship Fund. All rights reserved.</footer>
-</div>
 {% endblock %}

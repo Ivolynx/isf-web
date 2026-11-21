@@ -1,15 +1,89 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}ISF{% endblock %}</title>
   <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+  {# Anti-flash: apply saved theme before paint — single key across all pages #}
+  <script>
+    (function(){
+      try {
+        var t = localStorage.getItem('isf-theme');
+        if (t === 'dark') {
+          document.documentElement.setAttribute('data-theme','dark');
+        } else if (!t && window.matchMedia && window.matchMedia('(prefers-color-scheme:dark)').matches) {
+          document.documentElement.setAttribute('data-theme','dark');
+        } else {
+          document.documentElement.setAttribute('data-theme','light');
+        }
+      } catch(e){
+        document.documentElement.setAttribute('data-theme','light');
+      }
+    })();
+  </script>
+  <link rel="stylesheet" href="/css/design-tokens.css">
   <link rel="stylesheet" href="/css/auth.css">
+  <link rel="stylesheet" href="/css/style.css">
   {% block head %}{% endblock %}
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to main content</a>
-  {% block body %}{% endblock %}
+  {% block body %}
+  <main id="main-content">
+    {% block content %}{% endblock %}
+  </main>
+  {% endblock %}
+
+  {# Global theme toggle script — same key as landing page & dashboard #}
+  <script>
+  (function(){
+    'use strict';
+    var STORAGE_KEY = 'isf-theme';
+
+    function getTheme(){
+      try {
+        var t = localStorage.getItem(STORAGE_KEY);
+        if(t==='dark'||t==='light') return t;
+        if(window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches) return 'dark';
+      }catch(e){}
+      return 'light';
+    }
+
+    function applyTheme(theme){
+      document.documentElement.setAttribute('data-theme', theme);
+      try{ localStorage.setItem(STORAGE_KEY, theme); }catch(e){}
+    }
+
+    // Ensure theme is applied (anti-flash already ran above)
+    applyTheme(getTheme());
+
+    // Wire up all .theme-toggle and [data-theme-toggle] buttons
+    // This script runs after DOM is ready, so wire up immediately
+    function wireToggles(){
+      var toggles = document.querySelectorAll('.theme-toggle, [data-theme-toggle]');
+      toggles.forEach(function(btn){
+        btn.addEventListener('click', function(){
+          var current = document.documentElement.getAttribute('data-theme');
+          applyTheme(current === 'dark' ? 'light' : 'dark');
+        });
+      });
+    }
+    if(document.readyState === 'loading'){
+      document.addEventListener('DOMContentLoaded', wireToggles);
+    } else {
+      wireToggles();
+    }
+
+    // Cross-tab synchronisation
+    try {
+      window.addEventListener('storage', function(e){
+        if(e.key === STORAGE_KEY && (e.newValue === 'dark' || e.newValue === 'light')){
+          document.documentElement.setAttribute('data-theme', e.newValue);
+        }
+      });
+    }catch(e){}
+  })();
+  </script>
 </body>
 </html>

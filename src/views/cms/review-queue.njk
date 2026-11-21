@@ -1,0 +1,56 @@
+{% extends "layouts/admin.njk" %}
+{% block title %}{{ title }}{% endblock %}
+{% block breadcrumb %}
+<a href="/admin/cms">CMS</a>
+<span class="admin-breadcrumb__sep">›</span>
+<span class="admin-breadcrumb__current">Antrean Review</span>
+{% endblock %}
+{% block body %}
+<div class="admin-page-header">
+  <div>
+    <h1 class="admin-page-title">Antrean Peninjauan</h1>
+    <p class="admin-page-lead">Artikel yang menunggu peninjauan Anda.</p>
+  </div>
+</div>
+{% if articles and articles.length > 0 %}
+<div class="info-card" style="padding:0;overflow:hidden;">
+  <table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+    <thead>
+      <tr style="border-bottom:1px solid rgba(255,255,255,0.06);">
+        <th style="padding:0.85rem 1rem;text-align:left;color:var(--color-text-muted);font-weight:600;font-size:0.78rem;text-transform:uppercase;">Judul</th>
+        <th style="padding:0.85rem 1rem;text-align:left;color:var(--color-text-muted);font-weight:600;font-size:0.78rem;text-transform:uppercase;">Status</th>
+        <th style="padding:0.85rem 1rem;text-align:left;color:var(--color-text-muted);font-weight:600;font-size:0.78rem;text-transform:uppercase;">Diperbarui</th>
+        <th style="padding:0.85rem 1rem;text-align:left;color:var(--color-text-muted);font-weight:600;font-size:0.78rem;text-transform:uppercase;">Aksi</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for article in articles %}
+      <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+        <td style="padding:0.85rem 1rem;"><a href="/admin/cms/articles/{{ article.id }}" style="color:var(--color-text);font-weight:500;">{{ article.title }}</a></td>
+        <td style="padding:0.85rem 1rem;">
+          <span class="cms-status-badge cms-status-badge--{{ article.status | lower | replace('_', '-') }}">
+            {% if article.status == 'IN_REVIEW' %}Menunggu Review
+            {% elif article.status == 'APPROVED' %}Disetujui
+            {% elif article.status == 'CHANGES_REQUESTED' %}Perlu Perbaikan
+            {% else %}{{ article.status }}{% endif %}
+          </span>
+        </td>
+        <td style="padding:0.85rem 1rem;color:var(--color-text-muted);font-size:0.85rem;">{{ article.updatedAt | string | truncate(10, true, '') if article.updatedAt else '-' }}</td>
+        <td style="padding:0.85rem 1rem;"><a href="/admin/cms/articles/{{ article.id }}" style="color:var(--color-primary);font-size:0.82rem;font-weight:600;">Tinjau →</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div style="text-align:center;padding:4rem 1rem;color:var(--color-text-muted);">
+  <p>Tidak ada artikel yang menunggu peninjauan saat ini.</p>
+</div>
+{% endif %}
+<style>
+.cms-status-badge { display:inline-block; padding:0.2rem 0.6rem; border-radius:var(--radius-pill); font-size:0.72rem; font-weight:600; }
+.cms-status-badge--in-review { background:var(--color-warning-bg); color:var(--color-warning-text); }
+.cms-status-badge--approved { background:var(--color-success-bg); color:var(--color-success-text); }
+.cms-status-badge--changes-requested { background:var(--color-error-bg); color:var(--color-error-text); }
+</style>
+{% endblock %}

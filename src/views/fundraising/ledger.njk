@@ -1,0 +1,202 @@
+{% extends "layouts/admin.njk" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block breadcrumb %}
+<a href="/admin/fundraising">Kampanye</a>
+<span class="admin-breadcrumb__sep">›</span>
+<span class="admin-breadcrumb__current">Buku Kas</span>
+{% endblock %}
+
+{% block body %}
+<div class="admin-page-header">
+  <div>
+    <h1 class="admin-page-title">Buku Kas Donasi</h1>
+    <p class="admin-page-lead">
+      Riwayat seluruh transaksi donasi ISF.
+      <span class="sim-badge" style="margin-left:0.5rem;">SIMULASI — Bukan uang nyata</span>
+    </p>
+  </div>
+  <a href="/admin/fundraising/ledger?_csv=1&campaign={{ campaignFilter or '' }}&status={{ statusFilter or '' }}&dateFrom={{ dateFrom or '' }}&dateTo={{ dateTo or '' }}"
+     class="btn btn--ghost btn--sm">
+    ↓ Export CSV
+  </a>
+</div>
+
+ {# ── Migration pending notice ─────────────────────────────────────────────── #}
+{% if migrationPending %}
+<div class="alert alert--error" style="margin-bottom:1.75rem;">
+  <span>⚠</span>
+  <span>
+    <strong>Database belum dimigrasikan.</strong>
+    Tabel fundraising belum tersedia. Jalankan <code>npm run db:migrate</code> untuk membuatnya.
+    Halaman ini akan berfungsi setelah migrasi selesai.
+  </span>
+</div>
+{% else %}
+{# ── Warning ──────────────────────────────────────────────────────────────── #}
+<div class="alert alert--warning" style="margin-bottom:1.75rem;">
+  <span>⚠</span>
+  <span>
+    <strong>Data di bawah menggunakan mock gateway (SIMULASI).</strong>
+    Laporan ini bukan dokumen keuangan resmi. Hanya donasi berstatus <strong>PAID</strong> yang dihitung sebagai penerimaan kas.
+  </span>
+</div>
+
+{# ── Filter ───────────────────────────────────────────────────────────────── #}
+<form method="GET" action="/admin/fundraising/ledger" style="margin-bottom:2rem;">
+  <div class="form-row" style="align-items:flex-end;flex-wrap:wrap;gap:0.75rem;">
+    <div class="form-field form-field--grow" style="min-width:10rem;">
+      <label class="form-label" for="fCampaign">Kampanye</label>
+      <select id="fCampaign" name="campaign" class="form-select">
+        <option value="">Semua Kampanye</option>
+        {% for c in campaigns %}
+          <option value="{{ c.id }}" {{ 'selected' if campaignFilter === c.id else '' }}>{{ c.title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-field" style="min-width:9rem;">
+      <label class="form-label" for="fStatus">Status</label>
+      <select id="fStatus" name="status" class="form-select">
+        <option value="">Semua Status</option>
+        <option value="PAID" {{ 'selected' if statusFilter === 'PAID' else '' }}>PAID</option>
+        <option value="PENDING" {{ 'selected' if statusFilter === 'PENDING' else '' }}>PENDING</option>
+        <option value="FAILED" {{ 'selected' if statusFilter === 'FAILED' else '' }}>FAILED</option>
+        <option value="REFUNDED" {{ 'selected' if statusFilter === 'REFUNDED' else '' }}>REFUNDED</option>
+        <option value="EXPIRED" {{ 'selected' if statusFilter === 'EXPIRED' else '' }}>EXPIRED</option>
+        <option value="CANCELLED" {{ 'selected' if statusFilter === 'CANCELLED' else '' }}>CANCELLED</option>
+      </select>
+    </div>
+    <div class="form-field" style="min-width:9rem;">
+      <label class="form-label" for="fDateFrom">Dari Tanggal</label>
+      <input type="date" id="fDateFrom" name="dateFrom" value="{{ dateFrom or '' }}">
+    </div>
+    <div class="form-field" style="min-width:9rem;">
+      <label class="form-label" for="fDateTo">Sampai Tanggal</label>
+      <input type="date" id="fDateTo" name="dateTo" value="{{ dateTo or '' }}">
+    </div>
+    <div class="form-field form-field--action">
+      <button type="submit" class="btn btn--secondary btn--sm">Terapkan Filter</button>
+    </div>
+  </div>
+</form>
+
+{# ── Summary row ─────────────────────────────────────────────────────────── #}
+<div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem;">
+  <div style="background:var(--surface-1);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:0.75rem 1.25rem;font-size:0.875rem;">
+    <span style="color:var(--color-text-secondary);">Total baris</span>
+    <span style="font-weight:600;margin-left:0.5rem;color:var(--color-text);">{{ total }}</span>
+  </div>
+  <div style="background:var(--surface-1);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:0.75rem 1.25rem;font-size:0.875rem;">
+    <span style="color:var(--color-text-secondary);">Halaman</span>
+    <span style="font-weight:600;margin-left:0.5rem;color:var(--color-text);">{{ page }} / {{ totalPages if totalPages > 0 else 1 }}</span>
+  </div>
+</div>
+
+{# ── Data table ───────────────────────────────────────────────────────────── #}
+{% if donations and donations.length > 0 %}
+<div class="table-wrapper">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>ID Donasi</th>
+        <th>Kampanye</th>
+        <th>Donatur</th>
+        <th style="text-align:right;">Nominal (IDR)</th>
+        <th>Status</th>
+        <th>Tanggal</th>
+        <th>Pesan</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for d in donations %}
+      {% set campaign = campaigns | selectattr('id', 'equalto', d.campaignId) | first %}
+      <tr>
+        <td style="font-size:0.78rem;color:var(--color-text-muted);font-family:monospace;">
+          {{ d.id | truncate(12, true, '…') }}
+        </td>
+        <td style="font-size:0.85rem;">
+          {% if campaign %}
+            <a href="/admin/fundraising/{{ campaign.id }}" style="color:var(--color-primary);">
+              {{ campaign.title | truncate(30) }}
+            </a>
+          {% else %}
+            <span style="color:var(--color-text-muted);">—</span>
+          {% endif %}
+        </td>
+        <td style="font-size:0.85rem;">
+          {% if d.isAnonymous %}
+            <span style="color:var(--color-text-muted);font-style:italic;">Anonim</span>
+          {% else %}
+            {{ d.donorName or d.donorEmail or '—' }}
+          {% endif %}
+        </td>
+        <td style="text-align:right;font-weight:600;font-variant-numeric:tabular-nums;">
+          {% if d.status === 'PAID' %}
+            <span style="color:var(--color-success-text);">{{ d.amount | int | string }}</span>
+          {% elif d.status === 'REFUNDED' %}
+            <span style="color:var(--color-error-text);">({{ d.amount | int | string }})</span>
+          {% elif d.status === 'PENDING' %}
+            <span style="color:var(--color-warning-text);">{{ d.amount | int | string }}</span>
+          {% else %}
+            <span style="color:var(--color-text-muted);">{{ d.amount | int | string }}</span>
+          {% endif %}
+        </td>
+        <td>
+          <span class="status-badge status-badge--{{ d.status | lower }}">{{ d.status }}</span>
+        </td>
+        <td style="font-size:0.82rem;color:var(--color-text-muted);">
+          {{ d.createdAt | string | truncate(10, true, '') if d.createdAt else '—' }}
+        </td>
+        <td style="font-size:0.82rem;color:var(--color-text-muted);max-width:14rem;">
+          {{ d.message | truncate(60) if d.message else '—' }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{# Pagination #}
+{% if totalPages > 1 %}
+<div style="display:flex;gap:0.5rem;margin-top:1.25rem;flex-wrap:wrap;align-items:center;">
+  {% if page > 1 %}
+    <a href="/admin/fundraising/ledger?page={{ page - 1 }}&campaign={{ campaignFilter or '' }}&status={{ statusFilter or '' }}&dateFrom={{ dateFrom or '' }}&dateTo={{ dateTo or '' }}"
+       class="btn btn--ghost btn--sm">← Sebelumnya</a>
+  {% endif %}
+  <span style="color:var(--color-text-secondary);font-size:0.875rem;">Halaman {{ page }} dari {{ totalPages }}</span>
+  {% if page < totalPages %}
+    <a href="/admin/fundraising/ledger?page={{ page + 1 }}&campaign={{ campaignFilter or '' }}&status={{ statusFilter or '' }}&dateFrom={{ dateFrom or '' }}&dateTo={{ dateTo or '' }}"
+       class="btn btn--ghost btn--sm">Berikutnya →</a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="admin-empty">
+  <div class="admin-empty__icon">
+    <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>
+    </svg>
+  </div>
+  <h3>Tidak ada transaksi ditemukan</h3>
+  <p>Belum ada data donasi{% if campaignFilter or statusFilter %} yang sesuai dengan filter aktif{% endif %}.</p>
+  {% if campaignFilter or statusFilter %}
+    <a href="/admin/fundraising/ledger" class="btn btn--ghost btn--sm" style="margin-top:1rem;">Reset Filter</a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% endif %}{# /migrationPending #}
+
+{% if not migrationPending %}
+<div style="margin-top:1.5rem;padding:1.25rem;background:var(--surface-1);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);font-size:0.82rem;color:var(--color-text-secondary);line-height:1.7;">
+  <strong style="color:var(--color-text);">Catatan Pembukuan:</strong>
+  Hanya donasi berstatus <strong style="color:var(--color-success-text);">PAID</strong> yang dihitung sebagai penerimaan kas.
+  Donasi <strong style="color:var(--color-warning-text);">PENDING</strong> belum dikonfirmasi dan tidak termasuk kas diterima.
+  Donasi <strong style="color:var(--color-error-text);">REFUNDED</strong> mengurangi saldo bersih.
+  Donasi FAILED, EXPIRED, dan CANCELLED tidak mempengaruhi saldo.
+  Buku kas ini adalah pembukuan sederhana berbasis transaksi donasi — bukan laporan keuangan yang diaudit.
+</div>
+{% endif %}
+{% endblock %}

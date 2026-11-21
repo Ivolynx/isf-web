@@ -48,12 +48,23 @@ const envSchema = z.object({
   STORAGE_BUCKET_PRIVATE: z.string().min(1).default('isf-private-docs'),
   STORAGE_BUCKET_PUBLIC: z.string().min(1).default('isf-public-assets'),
 
-  // Payment (placeholders — not implemented in Phase 0)
+  // Payment
   PAYMENT_PROVIDER: z.enum(['mock', 'midtrans', 'xendit']).default('mock'),
   PAYMENT_MIDTRANS_SERVER_KEY: z.string().optional(),
   PAYMENT_MIDTRANS_CLIENT_KEY: z.string().optional(),
   PAYMENT_XENDIT_SECRET_KEY: z.string().optional(),
   PAYMENT_XENDIT_WEBHOOK_TOKEN: z.string().optional(),
+
+  // Webhook signature secret — used by mock gateway and future providers.
+  // Optional in development (webhook signature is bypassed with a warning).
+  WEBHOOK_SECRET: z.string().min(16).optional(),
+
+  // WordPress Headless CMS Integration
+  // Leave empty to disable. Application runs with static fallback when not configured.
+  WORDPRESS_BASE_URL: z.string().url().optional(),
+  WORDPRESS_PAGE_SLUG: z.string().min(1).default('homepage'),
+  // WordPress REST API cache TTL in seconds (0 = no cache)
+  WORDPRESS_CACHE_TTL: z.coerce.number().int().nonnegative().default(60),
 
   // Logging
   LOG_LEVEL: z

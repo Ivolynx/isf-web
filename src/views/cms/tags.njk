@@ -1,0 +1,51 @@
+{% extends "layouts/admin.njk" %}
+{% block title %}{{ title }}{% endblock %}
+{% block breadcrumb %}
+<a href="/admin/cms">CMS</a>
+<span class="admin-breadcrumb__sep">›</span>
+<span class="admin-breadcrumb__current">Tag</span>
+{% endblock %}
+{% block body %}
+<div class="admin-page-header">
+  <div><h1 class="admin-page-title">Tag</h1></div>
+  <button type="button" id="btn-new-tag" class="btn btn--primary btn--sm">+ Tag Baru</button>
+</div>
+<div id="new-tag-form" style="display:none;" class="info-card" style="padding:1.5rem;margin-bottom:1.5rem;">
+  <h2 style="font-size:0.9rem;font-weight:600;margin-bottom:1rem;">Tambah Tag Baru</h2>
+  <div class="form-group"><label class="form-label form-label--required" for="tag-name">Nama</label><input type="text" id="tag-name" class="form-input" placeholder="Nama tag" maxlength="50"></div>
+  <div class="form-group"><label class="form-label" for="tag-slug">Slug</label><input type="text" id="tag-slug" class="form-input" placeholder="slug-otomatis" maxlength="50"></div>
+  <div style="display:flex;gap:0.75rem;"><button type="button" id="btn-save-tag" class="btn btn--primary">Simpan</button><button type="button" id="btn-cancel-tag" class="btn btn--ghost">Batal</button></div>
+  <div id="tag-error" class="alert alert--error" style="display:none;margin-top:0.75rem;"></div>
+</div>
+{% if tags and tags.length > 0 %}
+<div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
+  {% for tag in tags %}
+  <span style="background:var(--color-accent-light);color:var(--color-accent);padding:0.3rem 0.75rem;border-radius:var(--radius-pill);font-size:0.85rem;">{{ tag.name }}</span>
+  {% endfor %}
+</div>
+{% else %}
+<div style="text-align:center;padding:4rem 1rem;color:var(--color-text-muted);"><p>Belum ada tag.</p></div>
+{% endif %}
+<script>
+(function() {
+  const CSRF = '{{ csrfToken }}';
+  document.getElementById('btn-new-tag').addEventListener('click', function() { document.getElementById('new-tag-form').style.display='block'; });
+  document.getElementById('btn-cancel-tag').addEventListener('click', function() { document.getElementById('new-tag-form').style.display='none'; });
+  document.getElementById('btn-save-tag').addEventListener('click', async function() {
+    const name = document.getElementById('tag-name').value.trim();
+    const slug = document.getElementById('tag-slug').value.trim();
+    if (!name) { document.getElementById('tag-error').textContent='Nama wajib diisi.'; document.getElementById('tag-error').style.display='block'; return; }
+    try {
+      const resp = await fetch('/api/v1/tags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF },
+        body: JSON.stringify({ name, slug: slug || undefined }),
+      });
+      const result = await resp.json();
+      if (!resp.ok) { document.getElementById('tag-error').textContent=result.error||'Gagal menyimpan.'; document.getElementById('tag-error').style.display='block'; return; }
+      window.location.reload();
+    } catch(e) { document.getElementById('tag-error').textContent='Koneksi gagal.'; document.getElementById('tag-error').style.display='block'; }
+  });
+})();
+</script>
+{% endblock %}

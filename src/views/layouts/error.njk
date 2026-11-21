@@ -5,25 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}ISF — Kesalahan{% endblock %}</title>
   <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+  <link rel="stylesheet" href="/css/design-tokens.css">
+  <script>
+    (function(){var t=localStorage.getItem('isf-theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.setAttribute('data-theme','dark');}})();
+  </script>
   <style>
-    :root {
-      --navy-900: #0B1B3A;
-      --navy-800: #12274F;
-      --navy-700: #1C3666;
-      --navy-500: #2F4F8F;
-      --cream-100: #F6F1E7;
-      --cream-400: #C9BDA5;
-      --gold-500: #F2C14E;
-      --gold-600: #D9A62E;
-      --font-display: "Newsreader", Georgia, "Times New Roman", serif;
-      --font-body: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-    }
     *, *::before, *::after { box-sizing: border-box; }
     html, body { margin: 0; height: 100%; }
     body {
-      font-family: var(--font-body);
-      background: var(--navy-900);
-      color: var(--cream-100);
+      font-family: var(--font-body, "Plus Jakarta Sans", system-ui, sans-serif);
+      background: var(--color-bg, #F4F2F2);
+      color: var(--color-text, #1D2128);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -40,12 +32,12 @@
       display: inline-grid;
       place-items: center;
       width: 5rem; height: 5rem;
-      border: 1.5px solid var(--gold-500);
+      border: 1.5px solid var(--color-primary, #215E61);
       border-radius: 50%;
-      font-family: var(--font-display);
+      font-family: var(--font-display, "Newsreader", Georgia, serif);
       font-size: 2rem;
       font-weight: 600;
-      color: var(--cream-100);
+      color: var(--color-primary, #215E61);
       margin-bottom: 2rem;
     }
     .error-code {
@@ -53,18 +45,19 @@
       font-weight: 600;
       letter-spacing: 0.14em;
       text-transform: uppercase;
-      color: var(--gold-500);
+      color: var(--color-accent, #E08A10);
       margin-bottom: 0.75rem;
     }
     .error-title {
-      font-family: var(--font-display);
+      font-family: var(--font-display, "Newsreader", Georgia, serif);
       font-size: clamp(1.6rem, 5vw, 2.4rem);
       font-weight: 500;
       line-height: 1.1;
       margin: 0 0 1rem;
+      color: var(--color-text, #1D2128);
     }
     .error-message {
-      color: var(--cream-400);
+      color: var(--color-text-secondary, #3A5057);
       font-size: 1rem;
       line-height: 1.65;
       margin: 0 0 2rem;
@@ -79,11 +72,31 @@
       text-decoration: none;
       transition: background 0.2s, border-color 0.2s;
     }
-    .btn--primary { background: var(--gold-500); color: var(--navy-900); border-color: var(--gold-500); }
-    .btn--primary:hover { background: var(--gold-600); border-color: var(--gold-600); }
-    .btn--ghost { background: transparent; color: var(--cream-100); border-color: rgba(246,241,231,0.35); }
-    .btn--ghost:hover { border-color: var(--cream-100); }
-    .req-id { margin-top: 2.5rem; font-size: 0.75rem; color: var(--navy-500); font-family: monospace; }
+    .btn--primary {
+      background: var(--color-primary, #215E61);
+      color: #FFFFFF;
+      border-color: var(--color-primary, #215E61);
+    }
+    .btn--primary:hover {
+      background: var(--color-primary-hover, #194749);
+      border-color: var(--color-primary-hover, #194749);
+    }
+    .btn--ghost {
+      background: transparent;
+      color: var(--color-text, #1D2128);
+      border-color: var(--color-border, #DDE0E0);
+    }
+    .btn--ghost:hover {
+      border-color: var(--color-primary, #215E61);
+      color: var(--color-primary, #215E61);
+      background: var(--color-primary-light, #D5E8E9);
+    }
+    .req-id {
+      margin-top: 2.5rem;
+      font-size: 0.75rem;
+      color: var(--color-text-muted, #5C6E74);
+      font-family: monospace;
+    }
   </style>
 </head>
 <body>

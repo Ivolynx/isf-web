@@ -1,0 +1,75 @@
+{% extends "layouts/admin.njk" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block breadcrumb %}
+<a href="/admin">Admin</a>
+<span class="admin-breadcrumb__sep">›</span>
+<span class="admin-breadcrumb__current">Kampanye</span>
+{% endblock %}
+
+{% block body %}
+{% if migrationPending %}
+<div class="alert alert--error" style="margin-bottom:1.5rem;">
+  <span>⚠</span>
+  <span><strong>Database belum dimigrasikan.</strong> Jalankan <code>npm run db:migrate</code> untuk membuat tabel fundraising.</span>
+</div>
+{% endif %}
+<div class="admin-page-header">
+  <div>
+    <h1 class="admin-page-title">Dashboard Kampanye</h1>
+    <p class="admin-page-lead">Kelola kampanye penggalangan dana ISF.</p>
+  </div>
+  {% if isEditor and not migrationPending %}
+  <a href="/admin/fundraising/new" class="btn btn--primary btn--sm">+ Kampanye Baru</a>
+  {% endif %}
+</div>
+
+<!-- Status filter -->
+<div style="margin-bottom:1.5rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+  <a href="/admin/fundraising" class="btn btn--sm {{ 'btn--primary' if not statusFilter else 'btn--ghost' }}">Semua</a>
+  <a href="/admin/fundraising?status=DRAFT" class="btn btn--sm {{ 'btn--primary' if statusFilter === 'DRAFT' else 'btn--ghost' }}">Draft</a>
+  <a href="/admin/fundraising?status=IN_REVIEW" class="btn btn--sm {{ 'btn--primary' if statusFilter === 'IN_REVIEW' else 'btn--ghost' }}">In Review</a>
+  <a href="/admin/fundraising?status=APPROVED" class="btn btn--sm {{ 'btn--primary' if statusFilter === 'APPROVED' else 'btn--ghost' }}">Disetujui</a>
+  <a href="/admin/fundraising?status=ACTIVE" class="btn btn--sm {{ 'btn--primary' if statusFilter === 'ACTIVE' else 'btn--ghost' }}">Aktif</a>
+  <a href="/admin/fundraising?status=COMPLETED" class="btn btn--sm {{ 'btn--primary' if statusFilter === 'COMPLETED' else 'btn--ghost' }}">Selesai</a>
+</div>
+
+{% if campaigns and campaigns.length > 0 %}
+<div class="info-card" style="padding:0;overflow:hidden;margin-bottom:2rem;">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Kampanye</th>
+        <th>Target</th>
+        <th>Terkumpul</th>
+        <th>Status</th>
+        <th>Aksi</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for campaign in campaigns %}
+      <tr>
+        <td>
+          <div style="font-weight:500;">{{ campaign.title | escape }}</div>
+          <div style="font-size:0.8rem;color:var(--color-text-muted);">{{ campaign.beneficiary | escape }}</div>
+        </td>
+        <td>Rp {{ campaign.goalAmount | int }}</td>
+        <td>Rp {{ campaign.totalRaised | int }}</td>
+        <td>
+          <span class="cms-status-badge cms-status-badge--{{ campaign.status | lower }}">{{ campaign.status }}</span>
+        </td>
+        <td>
+          <a href="/admin/fundraising/{{ campaign.id }}" class="btn btn--ghost btn--sm">Detail</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="admin-empty" style="text-align:center;padding:4rem 1rem;">
+  <p style="color:var(--color-text-secondary);">Belum ada kampanye.{% if isEditor %} <a href="/admin/fundraising/new" style="color:var(--color-primary);">Buat kampanye baru</a>.{% endif %}</p>
+</div>
+{% endif %}
+{% endblock %}

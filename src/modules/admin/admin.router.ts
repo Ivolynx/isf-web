@@ -13,8 +13,22 @@ import { Router } from 'express';
 import { requirePageRole } from '../../middleware/page.middleware.js';
 import { generateCsrfToken } from '../../middleware/csrf.middleware.js';
 import { getUserById } from '../auth/auth.service.js';
+import { getWordPressConfig } from '../home/wordpress.service.js';
 
 export const adminRouter = Router();
+
+function buildAdminCtx(req: import('express').Request, res: import('express').Response, user: Awaited<ReturnType<typeof getUserById>>) {
+  const wpConfig = getWordPressConfig();
+  return {
+    csrfToken: generateCsrfToken(req, res),
+    year: new Date().getFullYear(),
+    userEmail: req.session.userEmail,
+    userRole: req.session.userRole,
+    displayName: user?.displayName || req.session.userEmail,
+    currentPath: req.originalUrl.split('?')[0],
+    wpAdminUrl: wpConfig.adminUrl,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // GET /admin
@@ -26,14 +40,7 @@ adminRouter.get(
   async (req, res, next) => {
     try {
       const user = req.session.userId ? await getUserById(req.session.userId) : null;
-
-      res.render('admin/index.njk', {
-        csrfToken: generateCsrfToken(req, res),
-        year: new Date().getFullYear(),
-        userEmail: req.session.userEmail,
-        userRole: req.session.userRole,
-        displayName: user?.displayName || req.session.userEmail,
-      });
+      res.render('admin/index.njk', buildAdminCtx(req, res, user));
     } catch (err) {
       next(err);
     }
@@ -50,14 +57,7 @@ adminRouter.get(
   async (req, res, next) => {
     try {
       const user = req.session.userId ? await getUserById(req.session.userId) : null;
-
-      res.render('admin/editor.njk', {
-        csrfToken: generateCsrfToken(req, res),
-        year: new Date().getFullYear(),
-        userEmail: req.session.userEmail,
-        userRole: req.session.userRole,
-        displayName: user?.displayName || req.session.userEmail,
-      });
+      res.render('admin/editor.njk', buildAdminCtx(req, res, user));
     } catch (err) {
       next(err);
     }
@@ -74,14 +74,7 @@ adminRouter.get(
   async (req, res, next) => {
     try {
       const user = req.session.userId ? await getUserById(req.session.userId) : null;
-
-      res.render('admin/reviewer.njk', {
-        csrfToken: generateCsrfToken(req, res),
-        year: new Date().getFullYear(),
-        userEmail: req.session.userEmail,
-        userRole: req.session.userRole,
-        displayName: user?.displayName || req.session.userEmail,
-      });
+      res.render('admin/reviewer.njk', buildAdminCtx(req, res, user));
     } catch (err) {
       next(err);
     }

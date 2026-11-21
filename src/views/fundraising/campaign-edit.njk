@@ -1,0 +1,423 @@
+{% extends "layouts/admin.njk" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block breadcrumb %}
+<a href="/admin/fundraising">Kampanye</a>
+<span class="admin-breadcrumb__sep">›</span>
+<span class="admin-breadcrumb__current">{{ 'Kampanye Baru' if isNew else 'Edit Kampanye' }}</span>
+{% endblock %}
+
+{% block body %}
+<div class="admin-page-header">
+  <h1 class="admin-page-title">{{ 'Kampanye Baru' if isNew else 'Edit Kampanye' }}</h1>
+  <p class="admin-page-lead">{{ 'Isi detail kampanye baru berikut.' if isNew else 'Perbarui informasi kampanye ini.' }}</p>
+</div>
+
+<div id="campaignFormMsg" class="alert" style="display:none;" role="alert"></div>
+
+<form id="campaignForm" style="max-width:760px;" novalidate>
+  <input type="hidden" id="campaignId" value="{{ campaign.id if campaign else '' }}">
+  <input type="hidden" name="_csrf" value="{{ csrfToken }}">
+
+  <div class="campaign-form-section">
+    <h2 class="campaign-form-section__title">Informasi Utama</h2>
+
+    <div class="form-group">
+      <label for="title">Judul Kampanye <span class="req" aria-label="wajib">*</span></label>
+      <input type="text" id="title" name="title"
+        value="{{ campaign.title if campaign else '' }}"
+        required maxlength="200"
+        placeholder="Contoh: Beasiswa Kuliah Angkatan 2026">
+      <div class="form-error" id="err-title" style="display:none;"></div>
+    </div>
+
+    <div class="form-group">
+      <label for="slug">Slug URL</label>
+      <input type="text" id="slug" name="slug"
+        value="{{ campaign.slug if campaign else '' }}"
+        maxlength="250"
+        placeholder="otomatis-dari-judul (dikosongkan = otomatis)">
+      <p class="form-hint">Gunakan huruf kecil, angka, dan tanda hubung saja. Tidak dapat diubah setelah kampanye aktif.</p>
+    </div>
+
+    <div class="form-group">
+      <label for="description">Deskripsi <span class="req" aria-label="wajib">*</span></label>
+      <textarea id="description" name="description"
+        rows="7" required maxlength="5000"
+        placeholder="Ceritakan tujuan, latar belakang, dan dampak kampanye ini...">{{ campaign.description if campaign else '' }}</textarea>
+      <div class="form-error" id="err-description" style="display:none;"></div>
+    </div>
+
+    <div class="form-group">
+      <label for="beneficiary">Penerima Manfaat <span class="req" aria-label="wajib">*</span></label>
+      <input type="text" id="beneficiary" name="beneficiary"
+        value="{{ campaign.beneficiary if campaign else '' }}"
+        required maxlength="500"
+        placeholder="Contoh: Mahasiswa aktif ISF angkatan 2026">
+      <div class="form-error" id="err-beneficiary" style="display:none;"></div>
+    </div>
+  </div>
+
+  <div class="campaign-form-section">
+    <h2 class="campaign-form-section__title">Dana &amp; Jadwal</h2>
+
+    <div class="campaign-form-grid">
+      <div class="form-group">
+        <label for="goalAmount">Target Dana <span class="req" aria-label="wajib">*</span></label>
+        <div class="input-prefix-wrap">
+          <span class="input-prefix">Rp</span>
+          <input type="number" id="goalAmount" name="goalAmount"
+            value="{{ campaign.goalAmount if campaign else '' }}"
+            required min="10000" step="1000"
+            placeholder="50000000">
+        </div>
+        <p class="form-hint" id="goalAmountDisplay"></p>
+        <div class="form-error" id="err-goalAmount" style="display:none;"></div>
+      </div>
+      <div class="form-group">
+        <label for="currency">Mata Uang</label>
+        <select id="currency" name="currency">
+          <option value="IDR" {{ 'selected' if not campaign or campaign.currency === 'IDR' else '' }}>IDR — Rupiah Indonesia</option>
+          <option value="USD" {{ 'selected' if campaign and campaign.currency === 'USD' else '' }}>USD — US Dollar</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="campaign-form-grid">
+      <div class="form-group">
+        <label for="startDate">Tanggal Mulai</label>
+        <input type="date" id="startDate" name="startDate"
+          value="{{ campaign.startDate if campaign else '' }}">
+      </div>
+      <div class="form-group">
+        <label for="endDate">Tanggal Selesai</label>
+        <input type="date" id="endDate" name="endDate"
+          value="{{ campaign.endDate if campaign else '' }}">
+      </div>
+    </div>
+  </div>
+
+  <div class="campaign-form-section">
+    <h2 class="campaign-form-section__title">Gambar Sampul</h2>
+
+    <div class="form-group">
+      <label>Pilih metode gambar</label>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.75rem;">
+        <button type="button" id="btn-cover-upload" class="btn btn--ghost btn--sm" style="font-size:0.85rem;">
+          📤 Unggah dari Komputer
+        </button>
+        <button type="button" id="btn-cover-url-toggle" class="btn btn--ghost btn--sm" style="font-size:0.85rem;">
+          🔗 Gunakan URL
+        </button>
+        <button type="button" id="btn-cover-remove" class="btn btn--ghost btn--sm" style="font-size:0.85rem;display:{{ 'none' if not campaign or not campaign.coverImageUrl else 'inline-flex' }};">
+          ✕ Hapus Gambar
+        </button>
+      </div>
+
+      <!-- URL input panel -->
+      <div id="cover-url-panel" style="{{ 'display:none' if not campaign or not campaign.coverImageUrl else 'display:block' }}">
+        <input type="url" id="coverImageUrl" name="coverImageUrl"
+          value="{{ campaign.coverImageUrl if campaign else '' }}"
+          placeholder="https://contoh.com/gambar.jpg"
+          style="font-size:0.88rem;">
+        <p class="form-hint">Rekomendasi rasio 16:9, minimal 800×450 piksel. Hanya HTTPS direkomendasikan.</p>
+      </div>
+      <!-- Upload progress -->
+      <p id="cover-upload-status" style="font-size:0.78rem;color:var(--color-text-muted);margin-top:0.35rem;min-height:1em;" aria-live="polite"></p>
+    </div>
+
+    <div class="img-preview" id="coverPreview" style="{{ 'display:none' if not campaign or not campaign.coverImageUrl else '' }}">
+      <img id="coverPreviewImg"
+        src="{{ campaign.coverImageUrl if campaign and campaign.coverImageUrl else '' }}"
+        alt="Preview gambar sampul">
+    </div>
+  </div>
+
+  <div class="campaign-form-actions">
+    <button type="submit" class="btn btn--primary" id="saveBtn">
+      <span id="saveBtnText">{{ 'Buat Kampanye' if isNew else 'Simpan Perubahan' }}</span>
+      <span class="spinner" id="saveBtnSpinner" style="display:none;"></span>
+    </button>
+    <a href="{{ '/admin/fundraising/' + campaign.id if campaign else '/admin/fundraising' }}" class="btn btn--ghost">Batal</a>
+  </div>
+</form>
+
+<style>
+.campaign-form-section {
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1.75rem;
+  margin-bottom: 1.5rem;
+}
+.campaign-form-section__title {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--color-text);
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.875rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.campaign-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+@media (max-width: 32em) { .campaign-form-grid { grid-template-columns: 1fr; } }
+.input-prefix-wrap {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+.input-prefix {
+  display: flex;
+  align-items: center;
+  padding: 0 0.75rem;
+  background: rgba(255,255,255,0.04);
+  border: 1.5px solid rgba(255,255,255,0.15);
+  border-right: 0;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.input-prefix-wrap input {
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.req { color: #f87171; margin-left: 0.2rem; }
+.campaign-form-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+</style>
+
+<script>
+(function() {
+  var form = document.getElementById('campaignForm');
+  var msgBox = document.getElementById('campaignFormMsg');
+  var campaignIdEl = document.getElementById('campaignId');
+  var campaignId = campaignIdEl ? campaignIdEl.value : '';
+  var isNew = !campaignId;
+  var CSRF = '{{ csrfToken }}';
+
+  // Cover image: upload and URL options
+  var CSRF_TOKEN_CAMPAIGN = CSRF;
+  var coverUrlInput = document.getElementById('coverImageUrl');
+  var preview = document.getElementById('coverPreview');
+  var previewImg = document.getElementById('coverPreviewImg');
+  var coverUrlPanel = document.getElementById('cover-url-panel');
+  var coverUploadStatus = document.getElementById('cover-upload-status');
+  var btnCoverRemove = document.getElementById('btn-cover-remove');
+
+  function setCampaignCoverUrl(url) {
+    if (coverUrlInput) coverUrlInput.value = url || '';
+    if (preview && previewImg) {
+      if (url) {
+        previewImg.src = url;
+        preview.style.display = '';
+      } else {
+        previewImg.src = '';
+        preview.style.display = 'none';
+      }
+    }
+    if (btnCoverRemove) btnCoverRemove.style.display = url ? 'inline-flex' : 'none';
+  }
+
+  // Live preview when URL input changes
+  if (coverUrlInput && preview && previewImg) {
+    coverUrlInput.addEventListener('input', function() {
+      var url = coverUrlInput.value.trim();
+      if (url && (url.startsWith('https://') || url.startsWith('http://'))) {
+        previewImg.src = url;
+        preview.style.display = '';
+        if (btnCoverRemove) btnCoverRemove.style.display = 'inline-flex';
+      } else {
+        preview.style.display = 'none';
+        if (btnCoverRemove) btnCoverRemove.style.display = 'none';
+      }
+    });
+  }
+
+  // URL toggle button
+  var btnUrlToggle = document.getElementById('btn-cover-url-toggle');
+  if (btnUrlToggle && coverUrlPanel) {
+    btnUrlToggle.addEventListener('click', function() {
+      var isVisible = coverUrlPanel.style.display !== 'none';
+      coverUrlPanel.style.display = isVisible ? 'none' : 'block';
+      if (!isVisible && coverUrlInput) coverUrlInput.focus();
+    });
+  }
+
+  // Remove cover button
+  if (btnCoverRemove) {
+    btnCoverRemove.addEventListener('click', function() {
+      setCampaignCoverUrl('');
+      coverUrlPanel.style.display = 'none';
+      if (coverUploadStatus) { coverUploadStatus.textContent = 'Gambar sampul dihapus.'; }
+    });
+  }
+
+  // Upload button
+  var btnCoverUpload = document.getElementById('btn-cover-upload');
+  if (btnCoverUpload) {
+    var fileInputCampaign = document.createElement('input');
+    fileInputCampaign.type = 'file';
+    fileInputCampaign.accept = 'image/jpeg,image/png,image/webp';
+    fileInputCampaign.style.display = 'none';
+    document.body.appendChild(fileInputCampaign);
+
+    btnCoverUpload.addEventListener('click', function() { fileInputCampaign.click(); });
+
+    fileInputCampaign.addEventListener('change', function() {
+      var file = fileInputCampaign.files && fileInputCampaign.files[0];
+      if (!file) return;
+      fileInputCampaign.value = '';
+
+      // Validate size: 5 MB
+      var MAX_MB = 5;
+      if (file.size > MAX_MB * 1024 * 1024) {
+        if (coverUploadStatus) {
+          coverUploadStatus.textContent = 'File terlalu besar. Maksimum ' + MAX_MB + ' MB.';
+          coverUploadStatus.style.color = 'var(--color-error-text)';
+        }
+        return;
+      }
+
+      var formData = new FormData();
+      formData.append('image', file);
+      if (coverUploadStatus) {
+        coverUploadStatus.textContent = 'Mengunggah...';
+        coverUploadStatus.style.color = 'var(--color-text-muted)';
+      }
+
+      fetch('/api/v1/cms/upload-image', {
+        method: 'POST',
+        headers: { 'X-CSRF-Token': CSRF_TOKEN_CAMPAIGN },
+        body: formData,
+      }).then(function(r) {
+        return r.json().then(function(d) { return { ok: r.ok, data: d }; });
+      }).then(function(res) {
+        if (!res.ok) {
+          if (coverUploadStatus) {
+            coverUploadStatus.textContent = res.data.error || 'Gagal mengunggah.';
+            coverUploadStatus.style.color = 'var(--color-error-text)';
+          }
+          return;
+        }
+        setCampaignCoverUrl(res.data.url);
+        if (coverUrlPanel) coverUrlPanel.style.display = 'block';
+        if (coverUploadStatus) {
+          coverUploadStatus.textContent = '✓ Gambar berhasil diunggah.';
+          coverUploadStatus.style.color = 'var(--color-success-text)';
+        }
+      }).catch(function() {
+        if (coverUploadStatus) {
+          coverUploadStatus.textContent = 'Koneksi gagal saat upload.';
+          coverUploadStatus.style.color = 'var(--color-error-text)';
+        }
+      });
+    });
+  }
+
+  // Goal amount display format
+  var goalInput = document.getElementById('goalAmount');
+  var goalDisplay = document.getElementById('goalAmountDisplay');
+  if (goalInput && goalDisplay) {
+    goalInput.addEventListener('input', function() {
+      var val = parseFloat(goalInput.value);
+      if (!isNaN(val) && val > 0) {
+        goalDisplay.textContent = 'Rp ' + val.toLocaleString('id-ID');
+      } else {
+        goalDisplay.textContent = '';
+      }
+    });
+    // Init display
+    if (goalInput.value) {
+      var v = parseFloat(goalInput.value);
+      if (!isNaN(v)) goalDisplay.textContent = 'Rp ' + v.toLocaleString('id-ID');
+    }
+  }
+
+  function showMsg(type, text) {
+    msgBox.className = 'alert alert--' + type;
+    msgBox.textContent = text;
+    msgBox.style.display = 'flex';
+    msgBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function clearErrors() {
+    document.querySelectorAll('.form-error').forEach(function(el) { el.style.display = 'none'; el.textContent = ''; });
+    document.querySelectorAll('input, textarea, select').forEach(function(el) { el.style.borderColor = ''; });
+  }
+
+  form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    clearErrors();
+    var btn = document.getElementById('saveBtn');
+    var btnText = document.getElementById('saveBtnText');
+    var spinner = document.getElementById('saveBtnSpinner');
+    btn.disabled = true;
+    btnText.textContent = 'Menyimpan...';
+    spinner.style.display = 'inline-block';
+    msgBox.style.display = 'none';
+
+    var goalVal = parseFloat(document.getElementById('goalAmount').value);
+    var body = {
+      title: document.getElementById('title').value.trim(),
+      slug: document.getElementById('slug').value.trim() || undefined,
+      description: document.getElementById('description').value.trim(),
+      beneficiary: document.getElementById('beneficiary').value.trim(),
+      goalAmount: isNaN(goalVal) ? 0 : goalVal,
+      currency: document.getElementById('currency').value || 'IDR',
+      startDate: document.getElementById('startDate').value || undefined,
+      endDate: document.getElementById('endDate').value || undefined,
+      coverImageUrl: document.getElementById('coverImageUrl').value.trim() || undefined
+    };
+
+    var url = isNew ? '/api/v1/campaigns' : '/api/v1/campaigns/' + campaignId;
+    var method = isNew ? 'POST' : 'PUT';
+
+    try {
+      var res = await fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': CSRF },
+        body: JSON.stringify(body)
+      });
+      var data = await res.json();
+
+      if (!res.ok) {
+        var msg = data.error || 'Terjadi kesalahan.';
+        if (data.details && data.details.length > 0) {
+          data.details.forEach(function(d) {
+            var errEl = document.getElementById('err-' + d.field);
+            var inputEl = document.getElementById(d.field);
+            if (errEl) { errEl.textContent = d.message; errEl.style.display = 'flex'; }
+            if (inputEl) { inputEl.style.borderColor = '#f87171'; }
+          });
+          msg = 'Mohon periksa kolom yang ditandai merah.';
+        }
+        showMsg('error', msg);
+        btn.disabled = false;
+        btnText.textContent = isNew ? 'Buat Kampanye' : 'Simpan Perubahan';
+        spinner.style.display = 'none';
+        return;
+      }
+
+      showMsg('success', isNew ? 'Kampanye berhasil dibuat! Mengalihkan...' : 'Perubahan berhasil disimpan! Mengalihkan...');
+      var id = data.campaign && data.campaign.id;
+      setTimeout(function() { window.location.href = '/admin/fundraising/' + id; }, 900);
+    } catch (err) {
+      showMsg('error', 'Terjadi kesalahan jaringan. Periksa koneksi Anda.');
+      btn.disabled = false;
+      btnText.textContent = isNew ? 'Buat Kampanye' : 'Simpan Perubahan';
+      spinner.style.display = 'none';
+    }
+  });
+})();
+</script>
+{% endblock %}

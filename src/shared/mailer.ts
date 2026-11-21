@@ -170,3 +170,123 @@ export async function sendInvitationEmail(
     `.trim(),
   });
 }
+
+// ---------------------------------------------------------------------------
+// Loan billing notifications (simulation mode — sent only when SMTP configured)
+// ---------------------------------------------------------------------------
+
+/**
+ * Notify student when a loan agreement + installment schedule is created.
+ * NOTE: System is in simulation mode — not a real financial agreement.
+ */
+export async function sendLoanScheduleCreatedEmail(opts: {
+  to: string;
+  studentName: string;
+  agreementNumber: string;
+  principalAmount: string;
+  tenorMonths: number;
+  firstPaymentDate: string;
+  portalUrl: string;
+}): Promise<boolean> {
+  return sendMail({
+    to: opts.to,
+    subject: `[SIMULASI] Jadwal Cicilan Pembiayaan ${opts.agreementNumber} — ISF`,
+    text: [
+      `Yth. ${opts.studentName},`,
+      '',
+      '[SIMULASI — bukan transaksi keuangan nyata]',
+      '',
+      `Perjanjian pembiayaan ${opts.agreementNumber} telah dibuat.`,
+      `Pokok: Rp ${parseFloat(opts.principalAmount).toLocaleString('id-ID')}`,
+      `Tenor: ${opts.tenorMonths} bulan`,
+      `Cicilan pertama: ${opts.firstPaymentDate}`,
+      '',
+      `Lihat jadwal cicilan di: ${opts.portalUrl}`,
+      '',
+      'ISF — Intelligentsia Scholarship Fund',
+    ].join('\n'),
+    html: `
+      <p>Yth. <strong>${opts.studentName}</strong>,</p>
+      <p><em>[SIMULASI — bukan transaksi keuangan nyata]</em></p>
+      <p>Perjanjian pembiayaan <strong>${opts.agreementNumber}</strong> telah dibuat.</p>
+      <table style="border-collapse:collapse;">
+        <tr><td style="padding:4px 12px 4px 0;">Pokok</td><td><strong>Rp ${parseFloat(opts.principalAmount).toLocaleString('id-ID')}</strong></td></tr>
+        <tr><td style="padding:4px 12px 4px 0;">Tenor</td><td>${opts.tenorMonths} bulan</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;">Cicilan pertama</td><td>${opts.firstPaymentDate}</td></tr>
+      </table>
+      <p><a href="${opts.portalUrl}">Lihat jadwal cicilan →</a></p>
+      <p><small>ISF — Intelligentsia Scholarship Fund</small></p>
+    `.trim(),
+  });
+}
+
+/**
+ * Notify student when a payment submission is approved by admin.
+ */
+export async function sendPaymentApprovedEmail(opts: {
+  to: string;
+  studentName: string;
+  installmentNumber: number;
+  amount: string;
+  portalUrl: string;
+}): Promise<boolean> {
+  return sendMail({
+    to: opts.to,
+    subject: `[SIMULASI] Pembayaran Cicilan ke-${opts.installmentNumber} Disetujui — ISF`,
+    text: [
+      `Yth. ${opts.studentName},`,
+      '',
+      '[SIMULASI]',
+      '',
+      `Pembayaran cicilan ke-${opts.installmentNumber} sebesar Rp ${parseFloat(opts.amount).toLocaleString('id-ID')} telah diverifikasi dan disetujui.`,
+      '',
+      `Lihat detail di: ${opts.portalUrl}`,
+      '',
+      'ISF — Intelligentsia Scholarship Fund',
+    ].join('\n'),
+    html: `
+      <p>Yth. <strong>${opts.studentName}</strong>,</p>
+      <p><em>[SIMULASI]</em></p>
+      <p>Pembayaran cicilan ke-<strong>${opts.installmentNumber}</strong> sebesar <strong>Rp ${parseFloat(opts.amount).toLocaleString('id-ID')}</strong> telah diverifikasi dan disetujui.</p>
+      <p><a href="${opts.portalUrl}">Lihat detail pembayaran →</a></p>
+      <p><small>ISF — Intelligentsia Scholarship Fund</small></p>
+    `.trim(),
+  });
+}
+
+/**
+ * Notify student when a payment submission is rejected by admin.
+ */
+export async function sendPaymentRejectedEmail(opts: {
+  to: string;
+  studentName: string;
+  installmentNumber: number;
+  amount: string;
+  reason: string;
+  portalUrl: string;
+}): Promise<boolean> {
+  return sendMail({
+    to: opts.to,
+    subject: `[SIMULASI] Pembayaran Cicilan ke-${opts.installmentNumber} Ditolak — ISF`,
+    text: [
+      `Yth. ${opts.studentName},`,
+      '',
+      '[SIMULASI]',
+      '',
+      `Pembayaran cicilan ke-${opts.installmentNumber} sebesar Rp ${parseFloat(opts.amount).toLocaleString('id-ID')} tidak dapat diverifikasi.`,
+      `Alasan: ${opts.reason}`,
+      '',
+      `Unggah ulang bukti pembayaran di: ${opts.portalUrl}`,
+      '',
+      'ISF — Intelligentsia Scholarship Fund',
+    ].join('\n'),
+    html: `
+      <p>Yth. <strong>${opts.studentName}</strong>,</p>
+      <p><em>[SIMULASI]</em></p>
+      <p>Pembayaran cicilan ke-<strong>${opts.installmentNumber}</strong> sebesar Rp ${parseFloat(opts.amount).toLocaleString('id-ID')} tidak dapat diverifikasi.</p>
+      <p><strong>Alasan:</strong> ${opts.reason}</p>
+      <p><a href="${opts.portalUrl}">Unggah ulang bukti pembayaran →</a></p>
+      <p><small>ISF — Intelligentsia Scholarship Fund</small></p>
+    `.trim(),
+  });
+}

@@ -1,0 +1,132 @@
+{% extends "layouts/admin.njk" %}
+
+{% block title %}Detail Bukti Pembayaran — ISF{% endblock %}
+
+{% block breadcrumb %}
+<a href="/admin" class="admin-breadcrumb__link">Admin</a>
+<span class="admin-breadcrumb__sep">/</span>
+<a href="/admin/scholarship" class="admin-breadcrumb__link">Beasiswa</a>
+<span class="admin-breadcrumb__sep">/</span>
+<a href="/admin/scholarship/payments" class="admin-breadcrumb__link">Pembayaran</a>
+<span class="admin-breadcrumb__sep">/</span>
+<span class="admin-breadcrumb__current">Detail</span>
+{% endblock %}
+
+{% block body %}
+<div class="admin-page-header">
+  <div>
+    <h1 class="admin-page-title">Bukti Pembayaran</h1>
+    <p class="admin-page-lead">
+      <span class="status-badge status-badge--{{ payment.status | lower | replace('_', '-') }}">{{ payment.status | replace('_', ' ') }}</span>
+    </p>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;max-width:900px;margin-bottom:1.5rem;">
+  <div class="owner-section">
+    <h2 class="owner-section__title">Detail Pembayaran</h2>
+    <dl style="display:grid;gap:0.5rem;">
+      <dt style="font-size:0.78rem;color:var(--color-text-muted);">ID Cicilan</dt><dd style="font-size:0.85rem;">{{ payment.installmentId }}</dd>
+      <dt style="font-size:0.78rem;color:var(--color-text-muted);">Nominal</dt>
+      <dd style="font-family:monospace;font-weight:600;">Rp {{ payment.paymentAmount | float | round(0) | string }}</dd>
+      <dt style="font-size:0.78rem;color:var(--color-text-muted);">Tanggal Pembayaran</dt><dd>{{ payment.paymentDate }}</dd>
+      <dt style="font-size:0.78rem;color:var(--color-text-muted);">Metode</dt><dd>{{ payment.paymentMethod | replace('_', ' ') }}</dd>
+      <dt style="font-size:0.78rem;color:var(--color-text-muted);">Nomor Referensi</dt><dd>{{ payment.referenceNumber or '—' }}</dd>
+      <dt style="font-size:0.78rem;color:var(--color-text-muted);">Catatan</dt><dd>{{ payment.notes or '—' }}</dd>
+      <dt style="font-size:0.78rem;color:var(--color-text-muted);">File Bukti</dt>
+      <dd>{{ payment.proofOriginalName }}
+        {% if signedUrl %}
+        — <a href="{{ signedUrl }}" target="_blank" rel="noopener noreferrer" class="btn btn--ghost btn--sm">Lihat Dokumen ↗</a>
+        <p style="font-size:0.75rem;color:var(--color-text-muted);margin-top:0.25rem;">URL berlaku 5 menit. Dokumen ini bersifat privat.</p>
+        {% endif %}
+      </dd>
+    </dl>
+  </div>
+  <div class="owner-section">
+    <h2 class="owner-section__title">Status &amp; Riwayat</h2>
+    <dl style="display:grid;gap:0.5rem;">
+      <dt style="font-size:0.78rem;color:var(--color-text-muted);">Status</dt>
+      <dd><span class="status-badge status-badge--{{ payment.status | lower | replace('_', '-') }}">{{ payment.status | replace('_', ' ') }}</span></dd>
+      <dt style="font-size:0.78rem;color:var(--color-text-muted);">Diajukan</dt>
+      <dd style="font-size:0.85rem;">{{ payment.createdAt | string | truncate(19, true, '') if payment.createdAt else '—' }}</dd>
+      {% if payment.verifiedBy %}
+      <dt style="font-size:0.78rem;color:var(--color-text-muted);">Diverifikasi oleh</dt><dd style="font-size:0.85rem;">{{ payment.verifiedBy }}</dd>
+      <dt style="font-size:0.78rem;color:var(--color-text-muted);">Waktu Verifikasi</dt>
+      <dd style="font-size:0.85rem;">{{ payment.verifiedAt | string | truncate(19, true, '') if payment.verifiedAt else '—' }}</dd>
+      {% endif %}
+      {% if payment.rejectionReason %}
+      <dt style="font-size:0.78rem;color:var(--color-text-muted);">Alasan Penolakan</dt>
+      <dd style="color:var(--red-400);">{{ payment.rejectionReason }}</dd>
+      {% endif %}
+    </dl>
+  </div>
+</div>
+
+{% if payment.status === 'SUBMITTED' or payment.status === 'PENDING_VERIFICATION' %}
+<div class="owner-section" style="max-width:560px;">
+  <h2 class="owner-section__title">Keputusan Verifikasi</h2>
+  <p style="font-size:0.82rem;color:var(--color-text-muted);margin-bottom:1rem;">
+    Pembayaran hanya mengurangi saldo cicilan setelah disetujui di sini.
+    Penolakan tidak mengubah saldo.
+  </p>
+  <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:flex-start;">
+    <button type="button" id="btnApprove" class="btn btn--primary">✓ Setujui Pembayaran</button>
+    <div style="display:flex;flex-direction:column;gap:0.5rem;">
+      <input type="text" id="rejectReason" class="form-input" placeholder="Alasan penolakan (wajib jika ditolak)" style="min-width:260px;">
+      <button type="button" id="btnReject" class="btn btn--ghost" style="border-color:var(--red-400);color:var(--red-400);">✗ Tolak</button>
+    </div>
+    <span id="verifyStatus" style="font-size:0.85rem;color:var(--color-text-muted);align-self:center;"></span>
+  </div>
+</div>
+{% endif %}
+
+<script>
+(function() {
+  const csrf = '{{ csrfToken }}';
+  const paymentId = '{{ payment.id }}';
+
+  document.getElementById('btnApprove')?.addEventListener('click', async function() {
+    if (!confirm('Setujui pembayaran ini? Tindakan ini akan mengurangi saldo cicilan.')) return;
+    const status = document.getElementById('verifyStatus');
+    document.getElementById('btnApprove').disabled = true;
+    document.getElementById('btnReject').disabled = true;
+    status.textContent = 'Memproses…';
+    try {
+      const r = await fetch('/api/v1/scholarship/admin/payments/' + paymentId + '/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrf },
+        body: '{}',
+      });
+      const json = await r.json();
+      if (!r.ok) { status.textContent = json.error || 'Gagal.'; status.style.color='var(--red-400)';
+        document.getElementById('btnApprove').disabled=false; document.getElementById('btnReject').disabled=false; return; }
+      status.textContent = 'Pembayaran disetujui. Saldo cicilan diperbarui.'; status.style.color='var(--color-success-text)';
+      setTimeout(() => location.reload(), 1500);
+    } catch { status.textContent='Kesalahan jaringan.'; status.style.color='var(--red-400)';
+      document.getElementById('btnApprove').disabled=false; document.getElementById('btnReject').disabled=false; }
+  });
+
+  document.getElementById('btnReject')?.addEventListener('click', async function() {
+    const reason = document.getElementById('rejectReason').value.trim();
+    if (!reason) { alert('Isi alasan penolakan terlebih dahulu.'); return; }
+    const status = document.getElementById('verifyStatus');
+    document.getElementById('btnApprove').disabled = true;
+    document.getElementById('btnReject').disabled = true;
+    status.textContent = 'Memproses…';
+    try {
+      const r = await fetch('/api/v1/scholarship/admin/payments/' + paymentId + '/reject', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrf },
+        body: JSON.stringify({ reason }),
+      });
+      const json = await r.json();
+      if (!r.ok) { status.textContent = json.error || 'Gagal.'; status.style.color='var(--red-400)';
+        document.getElementById('btnApprove').disabled=false; document.getElementById('btnReject').disabled=false; return; }
+      status.textContent = 'Pembayaran ditolak.'; status.style.color='var(--red-400)';
+      setTimeout(() => location.reload(), 1500);
+    } catch { status.textContent='Kesalahan jaringan.'; status.style.color='var(--red-400)';
+      document.getElementById('btnApprove').disabled=false; document.getElementById('btnReject').disabled=false; }
+  });
+})();
+</script>
+{% endblock %}

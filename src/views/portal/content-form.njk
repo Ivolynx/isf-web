@@ -1,0 +1,254 @@
+{% extends "layouts/portal.njk" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block breadcrumb %}
+  <a href="/portal" class="portal-topbar__breadcrumb a">Member Portal</a>
+  <span class="portal-topbar__breadcrumb__sep" aria-hidden="true">›</span>
+  <a href="/portal/content" class="portal-topbar__breadcrumb a">Konten Saya</a>
+  <span class="portal-topbar__breadcrumb__sep" aria-hidden="true">›</span>
+  <span class="portal-topbar__breadcrumb__current">{{ 'Ajukan Konten Baru' if isNew else 'Edit Konten' }}</span>
+{% endblock %}
+
+{% block body %}
+
+<div class="portal-page-header">
+  <h1 class="portal-page-title">{{ 'Ajukan Konten Baru' if isNew else 'Edit Konten' }}</h1>
+</div>
+
+{% if not isNew and article and article.status === 'CHANGES_REQUESTED' %}
+<div class="p-alert p-alert--warning" role="alert">
+  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true" flex-shrink="0"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125"/></svg>
+  <div>
+    <strong>Catatan dari Reviewer:</strong><br>
+    {{ article.reviewerNotes | escape }}
+  </div>
+</div>
+{% endif %}
+
+<div id="contentFormMsg" class="p-alert" style="display:none;" role="alert"></div>
+
+<form id="contentForm" novalidate>
+  <input type="hidden" id="articleId" value="{{ article.id if article else '' }}">
+  <input type="hidden" name="_csrf" value="{{ csrfToken }}">
+
+  {# ── Section: Informasi Konten ── #}
+  <div class="p-section">
+    <h2 class="p-section__title">Informasi Konten</h2>
+    <div class="p-form-grid">
+
+      <div class="p-form-group p-full-span">
+        <label class="p-label" for="title">
+          Judul <span class="req" aria-label="wajib diisi">*</span>
+        </label>
+        <input type="text" id="title" name="title" class="p-input"
+               value="{{ article.title if article else '' }}"
+               required maxlength="200"
+               placeholder="Judul artikel atau berita Anda">
+        <div class="p-form-error" id="err-title"></div>
+      </div>
+
+      <div class="p-form-group">
+        <label class="p-label" for="contentType">
+          Jenis Konten <span class="req" aria-label="wajib diisi">*</span>
+        </label>
+        <select id="contentType" name="contentType" class="p-select">
+          {% for ct in contentTypes %}
+          <option value="{{ ct.value }}"
+            {{ 'selected' if article and ct.value in article.summary else '' }}>
+            {{ ct.label }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="p-form-group">
+        <label class="p-label" for="authorName">Nama Penulis</label>
+        <input type="text" id="authorName" name="authorName" class="p-input"
+               value="{{ displayName or '' }}"
+               maxlength="100"
+               placeholder="{{ displayName or userEmail }}">
+        <p class="p-hint">Nama yang ditampilkan di artikel (kosong = nama akun).</p>
+      </div>
+
+    </div>
+
+    <div class="p-form-group">
+      <label class="p-label" for="summary">
+        Ringkasan <span class="req" aria-label="wajib diisi">*</span>
+      </label>
+      <textarea id="summary" name="summary" class="p-textarea" rows="3"
+                required maxlength="500"
+                placeholder="Ringkasan singkat isi konten (maks. 500 karakter)…">{{ article.summary | replace('[Berita] ', '') | replace('[Artikel] ', '') | replace('[Cerita Pengalaman] ', '') | replace('[Opini] ', '') | replace('[Kegiatan / Dokumentasi] ', '') | replace('[Cerita Penerima Manfaat] ', '') if article else '' }}</textarea>
+      <div class="p-form-error" id="err-summary"></div>
+    </div>
+  </div>
+
+  {# ── Section: Isi Konten ── #}
+  <div class="p-section">
+    <h2 class="p-section__title">Isi Konten</h2>
+    <p class="p-text-muted p-text-sm" style="margin-top:calc(-1 * var(--p-sp-3));margin-bottom:var(--p-sp-4);">
+      Tulis isi artikel Anda. Setelah menyimpan draft, Anda dapat menggunakan editor lengkap dengan format teks.
+    </p>
+
+    <div class="p-form-group">
+      <label class="p-label" for="bodyText">Isi Artikel</label>
+      <textarea id="bodyText" name="bodyText" class="p-textarea" rows="12"
+                placeholder="Tulis isi konten Anda di sini…"
+                maxlength="50000">{{ article.bodyHtml | striptags if article else '' }}</textarea>
+      <p class="p-hint">Teks biasa. Format akan diterapkan setelah diedit menggunakan editor lengkap.</p>
+    </div>
+
+    <div class="p-form-group">
+      <label class="p-label" for="coverImageUrl">URL Gambar Sampul</label>
+      <input type="url" id="coverImageUrl" name="coverImageUrl" class="p-input"
+             value="{{ article.coverImageUrl if article else '' }}"
+             placeholder="https://contoh.com/gambar.jpg">
+      <p class="p-hint">URL gambar cover. Gunakan gambar yang Anda miliki haknya.</p>
+    </div>
+
+    <div id="coverPreview" style="{{ '' if article and article.coverImageUrl else 'display:none' }};margin-top:var(--p-sp-3);">
+      <img id="coverPreviewImg"
+           src="{{ article.coverImageUrl if article and article.coverImageUrl else '' }}"
+           alt="Preview gambar sampul"
+           style="max-width:20rem;border-radius:var(--p-r-md);border:1px solid var(--p-border);">
+    </div>
+  </div>
+
+  {# ── Section: Persetujuan Penulis ── #}
+  <div class="p-section">
+    <h2 class="p-section__title">Persetujuan Penulis</h2>
+    <div style="display:flex;align-items:flex-start;gap:var(--p-sp-3);padding:var(--p-sp-2) 0;">
+      <input type="checkbox" id="authorConsent" name="authorConsent" value="1"
+             style="width:1rem;height:1rem;flex-shrink:0;margin-top:0.15rem;accent-color:var(--p-accent);cursor:pointer;"
+             {{ 'checked' if not isNew else '' }} required>
+      <label for="authorConsent" style="font-size:0.875rem;line-height:1.6;color:var(--p-text);margin-bottom:0;cursor:pointer;">
+        Saya menyatakan bahwa saya adalah penulis atau memiliki izin sah untuk mempublikasikan konten dan gambar yang dikirimkan. Saya menyetujui bahwa konten ini dapat diterbitkan, diedit, dan ditampilkan oleh ISF sesuai kebijakan editorial yang berlaku.
+      </label>
+    </div>
+    <div class="p-form-error" id="err-consent"></div>
+  </div>
+
+  {# ── Actions ── #}
+  <div style="display:flex;gap:var(--p-sp-3);flex-wrap:wrap;margin-top:var(--p-sp-2);">
+    <button type="submit" class="p-btn p-btn--primary" id="saveBtn">
+      <span id="saveBtnText">Simpan Draf</span>
+      <span class="spinner" id="saveBtnSpinner" style="display:none;" aria-hidden="true"></span>
+    </button>
+    <a href="/portal/content" class="p-btn p-btn--ghost">Batal</a>
+  </div>
+</form>
+
+<script>
+(function() {
+  'use strict';
+  var form       = document.getElementById('contentForm');
+  var msgBox     = document.getElementById('contentFormMsg');
+  var articleIdEl = document.getElementById('articleId');
+  var articleId  = articleIdEl ? articleIdEl.value : '';
+  var isNew      = !articleId;
+  var CSRF       = '{{ csrfToken }}';
+
+  // Cover image preview
+  var coverInput  = document.getElementById('coverImageUrl');
+  var preview     = document.getElementById('coverPreview');
+  var previewImg  = document.getElementById('coverPreviewImg');
+  if (coverInput && preview && previewImg) {
+    coverInput.addEventListener('input', function() {
+      var url = coverInput.value.trim();
+      if (url && url.startsWith('http')) { previewImg.src = url; preview.style.display = ''; }
+      else { preview.style.display = 'none'; }
+    });
+  }
+
+  function showMsg(type, text) {
+    msgBox.className = 'p-alert p-alert--' + type;
+    msgBox.textContent = text;
+    msgBox.style.display = 'flex';
+    msgBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var btn     = document.getElementById('saveBtn');
+    var btnText = document.getElementById('saveBtnText');
+    var spinner = document.getElementById('saveBtnSpinner');
+    btn.disabled = true;
+    btnText.textContent = 'Menyimpan…';
+    spinner.style.display = 'inline-block';
+    msgBox.style.display = 'none';
+
+    var consent = document.getElementById('authorConsent').checked;
+    if (!consent) {
+      showMsg('error', 'Anda harus menyetujui pernyataan penulis sebelum menyimpan.');
+      btn.disabled = false; btnText.textContent = 'Simpan Draf'; spinner.style.display = 'none';
+      return;
+    }
+
+    var bodyText    = document.getElementById('bodyText').value.trim();
+    var bodyTiptap  = bodyText ? { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: bodyText }] }] } : {};
+    var bodyHtml    = bodyText ? ('<p>' + bodyText.replace(/\n\n+/g, '</p><p>').replace(/\n/g, '<br>') + '</p>') : '';
+    var summary     = document.getElementById('summary').value.trim();
+    var contentType = document.getElementById('contentType').value;
+    var fullSummary = '[' + contentType + '] ' + summary;
+
+    var payload = {
+      title: document.getElementById('title').value.trim(),
+      summary: fullSummary,
+      bodyTiptap: bodyTiptap,
+      bodyHtml: bodyHtml,
+      coverImageUrl: document.getElementById('coverImageUrl').value.trim() || undefined
+    };
+
+    try {
+      if (isNew) {
+        var createRes = await fetch('/portal/content', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-csrf-token': CSRF },
+          body: JSON.stringify({
+            title: payload.title,
+            summary: document.getElementById('summary').value.trim(),
+            contentType: contentType,
+            coverImageUrl: payload.coverImageUrl,
+            authorConsent: '1'
+          })
+        });
+        var createData = await createRes.json();
+        if (!createRes.ok) {
+          showMsg('error', createData.error || 'Gagal membuat konten.');
+          btn.disabled = false; btnText.textContent = 'Simpan Draf'; spinner.style.display = 'none';
+          return;
+        }
+        if (bodyText) {
+          await fetch('/portal/content/' + createData.articleId + '/edit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-csrf-token': CSRF },
+            body: JSON.stringify(Object.assign({}, payload, { title: payload.title, summary: fullSummary }))
+          });
+        }
+        showMsg('success', 'Draf berhasil dibuat! Mengalihkan ke editor…');
+        setTimeout(function() { window.location.href = createData.redirectUrl; }, 800);
+      } else {
+        var editRes = await fetch('/portal/content/' + articleId + '/edit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-csrf-token': CSRF },
+          body: JSON.stringify(payload)
+        });
+        var editData = await editRes.json();
+        if (!editRes.ok) {
+          showMsg('error', editData.error || 'Gagal menyimpan.');
+          btn.disabled = false; btnText.textContent = 'Simpan Draf'; spinner.style.display = 'none';
+          return;
+        }
+        showMsg('success', 'Draf berhasil disimpan!');
+        btn.disabled = false; btnText.textContent = 'Simpan Draf'; spinner.style.display = 'none';
+      }
+    } catch(err) {
+      showMsg('error', 'Terjadi kesalahan jaringan.');
+      btn.disabled = false; btnText.textContent = 'Simpan Draf'; spinner.style.display = 'none';
+    }
+  });
+})();
+</script>
+
+{% endblock %}

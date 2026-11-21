@@ -1,0 +1,196 @@
+{% extends "layouts/base.njk" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block head %}
+<meta name="description" content="Dukung kampanye penggalangan dana Intelligentsia Scholarship Fund untuk pendidikan Indonesia.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+<style>
+/* Campaigns page — ISF brand colors, full light/dark support */
+.campaigns-page { min-height: 100vh; display: flex; flex-direction: column; background: var(--color-bg); color: var(--color-text); }
+.campaigns-page-header {
+  background: linear-gradient(135deg, #194749 0%, #215E61 60%, #1D2128 100%);
+  padding: 3.5rem 0 3rem;
+}
+.campaigns-page-header .eyebrow { color: rgba(255,255,255,0.65); margin-bottom: 0.75rem; }
+.campaigns-page-header h1 {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+  line-height: 1.1;
+  color: #FFFFFF;
+}
+.campaigns-page-header p { color: rgba(255,255,255,0.75); max-width: 42rem; font-size: 1.05rem; }
+.campaigns-main { flex: 1; padding: 3rem 0 5rem; }
+.campaigns-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+  gap: 2rem;
+}
+.campaign-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+}
+.campaign-card:hover { border-color: var(--color-primary); transform: translateY(-4px); box-shadow: var(--shadow-md); }
+.campaign-card__image { aspect-ratio: 16/9; overflow: hidden; background: var(--color-bg-secondary); }
+.campaign-card__image img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.4s; }
+.campaign-card:hover .campaign-card__image img { transform: scale(1.04); }
+.campaign-card__body { padding: 1.5rem; flex: 1; display: flex; flex-direction: column; }
+.campaign-card__status {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.65rem;
+  border-radius: var(--radius-pill);
+  margin-bottom: 0.75rem;
+}
+.campaign-card__status--active { background: var(--color-success-bg); color: var(--color-success-text); border: 1px solid var(--color-success-border); }
+.campaign-card__status--completed { background: var(--color-info-bg); color: var(--color-info-text); border: 1px solid var(--color-info-border); }
+.campaign-card__status--paused { background: var(--color-warning-bg); color: var(--color-warning-text); border: 1px solid var(--color-warning-border); }
+.campaign-card__title { font-family: var(--font-display); font-size: 1.2rem; font-weight: 500; margin-bottom: 0.4rem; line-height: 1.25; }
+.campaign-card__title a { color: var(--color-text); }
+.campaign-card__title a:hover { color: var(--color-primary); }
+.campaign-card__beneficiary { font-size: 0.82rem; color: var(--color-text-secondary); margin-bottom: 0.75rem; }
+.campaign-card__description { font-size: 0.88rem; color: var(--color-text-secondary); line-height: 1.6; margin-bottom: 1.25rem; flex: 1; }
+.campaign-card__progress { margin-bottom: 1.25rem; }
+.progress-bar { height: 6px; background: var(--color-bg-secondary); border-radius: var(--radius-pill); overflow: hidden; margin: 0.6rem 0; }
+.progress-bar__fill { height: 100%; background: linear-gradient(90deg, var(--color-primary), #194749); border-radius: var(--radius-pill); transition: width 0.6s; }
+.progress-stats { display: flex; justify-content: space-between; font-size: 0.8rem; }
+.progress-stats__raised { color: var(--color-text); font-weight: 600; }
+.progress-stats__goal { color: var(--color-text-secondary); }
+.progress-pct { font-size: 0.78rem; color: var(--color-primary); font-weight: 600; }
+.campaign-card__date { font-size: 0.78rem; color: var(--color-text-muted); margin-bottom: 1rem; }
+.campaign-card__actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+.campaigns-empty { text-align: center; padding: 5rem 1rem; color: var(--color-text-secondary); }
+.campaigns-empty__icon { font-size: 3.5rem; margin-bottom: 1.25rem; opacity: 0.6; }
+.campaigns-empty-heading { font-family: var(--font-display); font-size: 1.35rem; color: var(--color-text); margin-bottom: 0.5rem; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="campaigns-page">
+  <header class="site-header" data-header>
+    <div class="container site-header__inner">
+      <a class="brand" href="/" aria-label="ISF">
+        <span class="brand__mark" aria-hidden="true">I</span>
+        <span class="brand__text">INTELLIGENTSIA<span class="brand__sub">Scholarship Fund</span></span>
+      </a>
+      <button class="nav-toggle" type="button" aria-label="Buka menu" aria-expanded="false" aria-controls="camp-nav" data-nav-toggle>
+        <span class="nav-toggle__bar"></span>
+        <span class="nav-toggle__bar"></span>
+        <span class="sr-only">Buka menu</span>
+      </button>
+      <nav class="site-nav" id="camp-nav" aria-label="Navigasi">
+        <ul class="site-nav__list">
+          <li><a href="/#tentang">Tentang ISF</a></li>
+          <li><a href="/#program">Program</a></li>
+          <li><a href="/fundraising" class="is-active">Penggalangan Dana</a></li>
+          <li><a href="/blog">Blog</a></li>
+          <li><a href="/#cara-daftar">Cara Daftar</a></li>
+        </ul>
+        <div class="site-nav__actions">
+          <a class="btn btn--primary btn--sm" href="/auth/register">Daftar Sekarang</a>
+          <button class="theme-toggle" type="button" aria-label="Ganti tema" title="Light / Dark Mode">
+            <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+            <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path stroke-linecap="round" d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          </button>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <div class="campaigns-page-header">
+    <div class="container">
+      <p class="eyebrow">Penggalangan Dana</p>
+      <h1>Kampanye Aktif ISF</h1>
+      <p>Setiap donasi Anda membantu mahasiswa berprestasi mendapatkan akses pendidikan yang layak.</p>
+    </div>
+  </div>
+
+  <main class="campaigns-main" id="main-content">
+    <div class="container">
+      {% if campaigns.length === 0 %}
+      <div class="campaigns-empty">
+        <div class="campaigns-empty__icon" aria-hidden="true">🎓</div>
+        <p class="campaigns-empty-heading">Belum ada kampanye aktif</p>
+        <p>Kunjungi kembali halaman ini untuk pembaruan kampanye terbaru.</p>
+        <a href="/" class="btn btn--ghost" style="margin-top:2rem;">Kembali ke Beranda</a>
+      </div>
+      {% else %}
+      <div class="campaigns-grid">
+        {% for campaign in campaigns %}
+        <div class="campaign-card" data-reveal>
+          {% if campaign.coverImageUrl %}
+          <div class="campaign-card__image">
+            <img src="{{ campaign.coverImageUrl }}" alt="{{ campaign.title }}" loading="lazy">
+          </div>
+          {% endif %}
+          <div class="campaign-card__body">
+            <span class="campaign-card__status campaign-card__status--{{ campaign.status | lower }}">
+              {% if campaign.status === 'ACTIVE' %}Aktif{% elif campaign.status === 'COMPLETED' %}Selesai{% elif campaign.status === 'PAUSED' %}Dijeda{% else %}{{ campaign.status }}{% endif %}
+            </span>
+            <h2 class="campaign-card__title">
+              <a href="/fundraising/{{ campaign.slug }}">{{ campaign.title }}</a>
+            </h2>
+            <p class="campaign-card__beneficiary">Untuk: {{ campaign.beneficiary }}</p>
+            <p class="campaign-card__description">{{ campaign.description | truncate(110) }}</p>
+            <div class="campaign-card__progress">
+              {% set goalAmount = campaign.goalAmount | float %}
+              {% set totalRaised = campaign.totalRaised | float %}
+              {% set pct = (totalRaised / goalAmount * 100) if goalAmount > 0 else 0 %}
+              {% set pct = 100 if pct > 100 else pct %}
+              <div class="progress-bar" role="progressbar" aria-valuenow="{{ pct | round }}" aria-valuemin="0" aria-valuemax="100">
+                <div class="progress-bar__fill" style="width:{{ pct | round }}%"></div>
+              </div>
+              <div class="progress-stats">
+                <span class="progress-stats__raised">Rp {{ campaign.totalRaised | int }}</span>
+                <span class="progress-pct">{{ pct | round }}%</span>
+              </div>
+              <div style="font-size:0.78rem;color:var(--color-text-muted);margin-top:0.2rem;">dari target Rp {{ campaign.goalAmount | int }}</div>
+            </div>
+            {% if campaign.endDate %}<p class="campaign-card__date">⏰ Berakhir: {{ campaign.endDate }}</p>{% endif %}
+            <div class="campaign-card__actions">
+              <a href="/fundraising/{{ campaign.slug }}" class="btn btn--primary btn--sm">
+                {% if campaign.status === 'ACTIVE' %}Donasi Sekarang{% else %}Lihat Detail{% endif %}
+              </a>
+              <a href="/fundraising/{{ campaign.slug }}" class="btn btn--ghost btn--sm">Lihat Kampanye</a>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      {% if totalPages > 1 %}
+      <nav class="pagination" aria-label="Halaman kampanye" style="display:flex;align-items:center;justify-content:center;gap:1rem;margin-top:3rem;">
+        {% if page > 1 %}
+        <a href="/fundraising?page={{ page - 1 }}" class="btn btn--ghost btn--sm">← Sebelumnya</a>
+        {% endif %}
+        <span style="color:var(--color-text-muted);font-size:0.9rem;">Halaman {{ page }} dari {{ totalPages }}</span>
+        {% if page < totalPages %}
+        <a href="/fundraising?page={{ page + 1 }}" class="btn btn--ghost btn--sm">Berikutnya →</a>
+        {% endif %}
+      </nav>
+      {% endif %}
+      {% endif %}
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container site-footer__bottom" style="padding-top:2rem;padding-bottom:2rem;">
+      <p>© {{ year }} Yayasan Intelegensia Nusantara. <a href="/">Beranda</a> · <a href="/blog">Blog</a> · <a href="/fundraising">Kampanye</a></p>
+    </div>
+  </footer>
+</div>
+<script src="/js/main.js" defer></script>
+{% endblock %}

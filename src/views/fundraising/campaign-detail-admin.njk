@@ -1,0 +1,230 @@
+{% extends "layouts/admin.njk" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block breadcrumb %}
+<a href="/admin/fundraising">Kampanye</a>
+<span class="admin-breadcrumb__sep">›</span>
+<span class="admin-breadcrumb__current">{{ campaign.title | truncate(40) }}</span>
+{% endblock %}
+
+{% block body %}
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:2rem;">
+      <div>
+        <div style="margin-bottom:0.5rem;">
+          <span class="badge badge--{{ campaign.status | lower }}">{{ campaign.status }}</span>
+        </div>
+        <h1 class="portal-main__heading" style="margin-bottom:0.25rem;">{{ campaign.title | escape }}</h1>
+        <p style="color:var(--color-text-muted);font-size:0.9rem;">{{ campaign.beneficiary | escape }}</p>
+      </div>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:flex-start;">
+        {% if canEdit %}
+        <a href="/admin/fundraising/{{ campaign.id | urlencode }}/edit" class="btn btn--secondary btn--sm">Edit</a>
+        {% endif %}
+        {% if campaign.status === 'ACTIVE' or campaign.status === 'COMPLETED' %}
+        <a href="/fundraising/{{ campaign.slug | urlencode }}" class="btn btn--ghost btn--sm" target="_blank">Lihat Publik</a>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="info-card" style="padding:1.5rem;margin-bottom:1.5rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:1.5rem;font-weight:700;">Rp {{ campaign.totalRaised | int }}</div>
+          <div style="color:var(--color-text-muted);font-size:0.85rem;">Terkumpul (PAID) dari target Rp {{ campaign.goalAmount | int }}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:1.25rem;font-weight:600;">{{ campaign.donationCount }}</div>
+          <div style="color:var(--color-text-muted);font-size:0.85rem;">Donatur</div>
+        </div>
+      </div>
+      <div style="margin-top:1rem;">
+        <div class="progress-bar" role="progressbar" aria-valuenow="{{ progressPct }}">
+          <div class="progress-bar__fill" style="width:{{ progressPct }}%;"></div>
+        </div>
+        <div style="font-size:0.8rem;color:var(--color-text-muted);margin-top:0.25rem;">{{ progressPct }}% dari target</div>
+      </div>
+    </div>
+
+    <!-- Description -->
+    <div class="info-card" style="margin-bottom:1.5rem;">
+      <h3 style="margin-bottom:0.75rem;font-size:1rem;color:var(--color-text-muted);">Deskripsi</h3>
+      <p style="white-space:pre-line;">{{ campaign.description | escape }}</p>
+    </div>
+
+    <!-- Workflow actions -->
+    <div class="info-card" style="margin-bottom:1.5rem;">
+      <h3 style="margin-bottom:1rem;font-size:1rem;color:var(--color-text-muted);">Aksi Workflow</h3>
+      <div id="workflowMsg" style="display:none;margin-bottom:1rem;padding:0.75rem 1rem;border-radius:var(--radius-sm);"></div>
+      <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+        {% if canSubmit %}
+        <button class="btn btn--primary btn--sm" onclick="doAction('submit')">Kirim untuk Ditinjau</button>
+        {% endif %}
+        {% if canApprove %}
+        <button class="btn btn--primary btn--sm" onclick="doAction('approve')">Setujui Kampanye</button>
+        {% endif %}
+        {% if canRequestChanges %}
+        <button class="btn btn--warning btn--sm" onclick="promptRequestChanges()">Minta Revisi</button>
+        {% endif %}
+        {% if canActivate %}
+        <button class="btn btn--primary btn--sm" onclick="doAction('activate')">Aktifkan Kampanye</button>
+        {% endif %}
+        {% if canPause %}
+        <button class="btn btn--warning btn--sm" onclick="doAction('pause')">Jeda Kampanye</button>
+        {% endif %}
+        {% if canResume %}
+        <button class="btn btn--primary btn--sm" onclick="doAction('resume')">Lanjutkan Kampanye</button>
+        {% endif %}
+        {% if canComplete %}
+        <button class="btn btn--secondary btn--sm" onclick="doAction('complete')">Selesaikan Kampanye</button>
+        {% endif %}
+      </div>
+
+      <!-- Request Changes dialog -->
+      <div id="changesDialog" style="display:none;margin-top:1rem;">
+        <label style="font-size:0.875rem;font-weight:500;color:var(--color-text-secondary);">Catatan Revisi</label>
+        <textarea id="changesNotes" rows="3" style="width:100%;margin:0.5rem 0;resize:vertical;" maxlength="1000"></textarea>
+        <div style="display:flex;gap:0.5rem;">
+          <button class="btn btn--warning btn--sm" onclick="submitRequestChanges()">Kirim Catatan</button>
+          <button class="btn btn--ghost btn--sm" onclick="document.getElementById('changesDialog').style.display='none'">Batal</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Donations table (ADMIN/OWNER) -->
+    {% if isAdmin and donations and donations.length > 0 %}
+    <div class="info-card" style="padding:0;overflow:hidden;margin-bottom:1.5rem;">
+      <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border-subtle);">
+        <h3 style="margin:0;font-size:1rem;">Donasi Terbaru (20 terakhir)</h3>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:0.875rem;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border-subtle);">
+            <th style="text-align:left;padding:0.625rem 1rem;color:var(--color-text-muted);">Donatur</th>
+            <th style="text-align:left;padding:0.625rem 1rem;color:var(--color-text-muted);">Jumlah</th>
+            <th style="text-align:left;padding:0.625rem 1rem;color:var(--color-text-muted);">Status</th>
+            <th style="text-align:left;padding:0.625rem 1rem;color:var(--color-text-muted);">Tanggal</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for don in donations %}
+          <tr style="border-bottom:1px solid var(--border-subtle);">
+            <td style="padding:0.625rem 1rem;">
+              {% if don.isAnonymous %}
+                <em>Anonim</em>
+              {% elif don.donorName %}
+                {{ don.donorName | escape }}
+              {% else %}
+                <em>—</em>
+              {% endif %}
+            </td>
+            <td style="padding:0.625rem 1rem;">Rp {{ don.amount | int }}</td>
+            <td style="padding:0.625rem 1rem;">
+              <span class="badge badge--{{ don.status | lower }}">{{ don.status }}</span>
+            </td>
+            <td style="padding:0.625rem 1rem;color:var(--color-text-muted);">{{ don.createdAt }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    <!-- Campaign metadata -->
+    <div class="info-card" style="padding:1.25rem 1.5rem;">
+      <h3 style="margin-bottom:0.75rem;font-size:0.875rem;color:var(--color-text-muted);">Detail Kampanye</h3>
+      <dl style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem 2rem;font-size:0.875rem;">
+        <div>
+          <dt style="color:var(--color-text-muted);">Slug</dt>
+          <dd>{{ campaign.slug | escape }}</dd>
+        </div>
+        <div>
+          <dt style="color:var(--color-text-muted);">Dibuat oleh</dt>
+          <dd>{{ campaign.createdBy | escape }}</dd>
+        </div>
+        {% if campaign.startDate %}
+        <div>
+          <dt style="color:var(--color-text-muted);">Tanggal Mulai</dt>
+          <dd>{{ campaign.startDate }}</dd>
+        </div>
+        {% endif %}
+        {% if campaign.endDate %}
+        <div>
+          <dt style="color:var(--color-text-muted);">Tanggal Selesai</dt>
+          <dd>{{ campaign.endDate }}</dd>
+        </div>
+        {% endif %}
+        {% if campaign.approvedAt %}
+        <div>
+          <dt style="color:var(--color-text-muted);">Disetujui</dt>
+          <dd>{{ campaign.approvedAt }}</dd>
+        </div>
+        {% endif %}
+      </dl>
+    </div>
+
+<style>
+.progress-bar { height: 8px; background: var(--surface-3); border-radius: var(--radius-full); overflow: hidden; }
+.progress-bar__fill { height: 100%; background: var(--color-accent); border-radius: var(--radius-full); }
+.badge { display:inline-block;padding:0.2rem 0.6rem;border-radius:var(--radius-full);font-size:0.75rem;font-weight:600; }
+.badge--draft { background:var(--color-bg-secondary);color:var(--color-text-muted); }
+.badge--in_review { background:var(--color-warning-bg);color:var(--color-warning-text); }
+.badge--approved { background:var(--color-success-bg);color:var(--color-success-text); }
+.badge--active { background:var(--color-primary-bg);color:var(--color-primary); }
+.badge--completed { background:var(--color-info-bg);color:var(--color-info-text); }
+.badge--cancelled { background:var(--color-error-bg);color:var(--color-error-text); }
+.badge--changes_requested { background:var(--color-warning-bg);color:var(--color-warning-text); }
+.badge--paid { background:var(--color-success-bg);color:var(--color-success-text); }
+.badge--pending { background:var(--color-warning-bg);color:var(--color-warning-text); }
+.badge--failed { background:var(--color-error-bg);color:var(--color-error-text); }
+.badge--expired { background:var(--color-bg-secondary);color:var(--color-text-muted); }
+.badge--refunded { background:var(--color-info-bg);color:var(--color-info-text); }
+</style>
+
+<script>
+var campaignId = '{{ campaign.id | escape }}';
+var csrfToken = '{{ csrfToken | escape }}';
+
+function setMsg(text, isError) {
+  var box = document.getElementById('workflowMsg');
+  box.style.display = 'block';
+  box.textContent = text;
+  var style = getComputedStyle(document.documentElement);
+  box.style.background = isError
+    ? style.getPropertyValue('--color-error-bg').trim()
+    : style.getPropertyValue('--color-success-bg').trim();
+  box.style.color = isError
+    ? style.getPropertyValue('--color-error-text').trim()
+    : style.getPropertyValue('--color-success-text').trim();
+  box.style.border = '1px solid ' + (isError
+    ? style.getPropertyValue('--color-error-border').trim()
+    : style.getPropertyValue('--color-success-border').trim());
+}
+
+async function doAction(action, body) {
+  var res = await fetch('/api/v1/campaigns/' + campaignId + '/' + action, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+    body: body ? JSON.stringify(body) : '{}'
+  });
+  var data = await res.json();
+  if (!res.ok) {
+    setMsg(data.error || 'Terjadi kesalahan.', true);
+    return;
+  }
+  setMsg('Berhasil! Memuat ulang...', false);
+  setTimeout(function() { window.location.reload(); }, 1200);
+}
+
+function promptRequestChanges() {
+  document.getElementById('changesDialog').style.display = 'block';
+}
+
+async function submitRequestChanges() {
+  var notes = document.getElementById('changesNotes').value.trim();
+  if (!notes) { setMsg('Catatan revisi tidak boleh kosong.', true); return; }
+  await doAction('request-changes', { notes: notes });
+}
+</script>
+{% endblock %}

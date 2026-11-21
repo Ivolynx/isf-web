@@ -29,6 +29,17 @@ import { usersRouter } from '../modules/users/users.router.js';
 import { portalRouter } from '../modules/portal/portal.router.js';
 import { adminRouter } from '../modules/admin/admin.router.js';
 import { ownerRouter } from '../modules/owner/owner.router.js';
+import { cmsApiRouter, cmsPagesRouter, blogRouter, cmsUploadRouter } from '../modules/cms/index.js';
+import { homeRouter } from '../modules/home/home.router.js';
+import {
+  fundraisingApiRouter,
+  fundraisingPublicRouter,
+  fundraisingDashboardRouter,
+} from '../modules/fundraising/index.js';
+import { scholarshipRouter } from '../modules/scholarship/index.js';
+import { portalScholarshipRouter } from '../modules/portal/portal.scholarship.router.js';
+import { adminScholarshipRouter } from '../modules/admin/admin.scholarship.router.js';
+import { webhookRouter } from '../modules/webhooks/webhook.router.js';
 import {
   csrfProtection,
   csrfTokenHandler,
@@ -69,16 +80,27 @@ export function createApp(): Express {
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: ["'self'"],
+          scriptSrc: [
+            "'self'",
+            // Tiptap is now bundled locally via esbuild (public/js/editor.bundle.js).
+            // 'unsafe-inline' is required for inline <script> blocks in Nunjucks templates.
+            // In production, upgrade to nonce-based CSP.
+            "'unsafe-inline'",
+          ],
           styleSrc: [
             "'self'",
+            "'unsafe-inline'",
             'https://fonts.googleapis.com',
           ],
           fontSrc: ["'self'", 'https://fonts.gstatic.com'],
           imgSrc: [
             "'self'",
             'data:',
+            'blob:',
             'https://images.unsplash.com',
+            // MinIO/S3 image assets — allow the configured storage endpoint
+            // In dev this is http://localhost:9000; in prod override with CDN/S3 URL
+            env.STORAGE_ENDPOINT,
           ],
           connectSrc: ["'self'"],
           frameSrc: ["'none'"],
@@ -183,7 +205,7 @@ export function createApp(): Express {
   // Nunjucks template engine
   // -------------------------------------------------------------------------
   const viewsDir = path.join(__dirname, '..', 'views');
-  nunjucks.configure(viewsDir, {
+  const nunjucksEnv = nunjucks.configure(viewsDir, {
     autoescape: true,
     throwOnUndefined: false,
     trimBlocks: true,
@@ -195,6 +217,34 @@ export function createApp(): Express {
   app.set('views', viewsDir);
 
   // -------------------------------------------------------------------------
+  // Nunjucks custom filters
+  // -------------------------------------------------------------------------
+
+  /**
+   * date(format) — format a Date object (or date string) using a simple
+   * hand-rolled formatter. Avoids pulling in a date library.
+   *
+   * Supported tokens: DD, MMM, YYYY, HH, mm
+   * Usage: {{ someDate | date('DD MMM YYYY HH:mm') }}
+   */
+  const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  nunjucksEnv.addFilter('date', function dateFilter(...args: any[]): string {
+    const value: unknown = args[0];
+    const format: string = typeof args[1] === 'string' ? args[1] : 'DD MMM YYYY';
+    if (!value) return '-';
+    const d = value instanceof Date ? value : new Date(String(value));
+    if (isNaN(d.getTime())) return String(value);
+    const pad = (n: number): string => String(n).padStart(2, '0');
+    return format
+      .replace('YYYY', String(d.getFullYear()))
+      .replace('MMM', MONTHS_SHORT[d.getMonth()] ?? '')
+      .replace('DD', pad(d.getDate()))
+      .replace('HH', pad(d.getHours()))
+      .replace('mm', pad(d.getMinutes()));
+  });
+
+  // -------------------------------------------------------------------------
   // Static files — serve the ISF landing page and assets
   //
   // Security: express.static is configured to only serve files from public/.
@@ -202,14 +252,13 @@ export function createApp(): Express {
   // this directory and cannot be served regardless of path traversal attempts.
   // -------------------------------------------------------------------------
   const publicDir = path.resolve(__dirname, '..', '..', 'public');
+  // Serve static assets (css, js, assets) but not index.html — the home
+  // route below renders the dynamic Nunjucks homepage instead.
   app.use(
     express.static(publicDir, {
-      index: 'index.html',
-      // Do not expose directory listings
+      index: false,
       redirect: false,
-      // Cache static assets in production
       maxAge: env.NODE_ENV === 'production' ? '7d' : '0',
-      // Explicitly disallow dotfile access (defense in depth)
       dotfiles: 'deny',
     }),
   );
@@ -217,6 +266,9 @@ export function createApp(): Express {
   // -------------------------------------------------------------------------
   // Application routes
   // -------------------------------------------------------------------------
+  // Dynamic homepage — must come before any catch-all static serving
+  app.use('/', homeRouter);
+
   app.use('/health', healthRouter);
 
   // CSRF token endpoint — GET, so no CSRF protection needed on this route itself
@@ -233,12 +285,40 @@ export function createApp(): Express {
 
   // Portal, admin, and owner page routers
   app.use('/portal', csrfProtection, portalRouter);
+  app.use('/portal/scholarship', csrfProtection, portalScholarshipRouter);
   app.use('/admin', csrfProtection, adminRouter);
+  app.use('/admin/scholarship', csrfProtection, adminScholarshipRouter);
   app.use('/owner', csrfProtection, ownerRouter);
 
-  // Module routers registered here as they are implemented in later phases:
-  // app.use('/api/v1',     csrfProtection, apiRouter);
-  // app.use('/webhooks',   webhookRouter);  // webhooks use HMAC, not CSRF
+  // CMS pages (dashboard) — authenticated, role-protected
+  app.use('/admin/cms', csrfProtection, cmsPagesRouter);
+
+  // CMS API — JSON endpoints for article management
+  app.use('/api/v1', csrfProtection, cmsApiRouter);
+
+  // CMS image upload — multipart, authenticated, CSRF-protected
+  app.use('/api/v1/cms', csrfProtection, cmsUploadRouter);
+
+  // Blog — public, no CSRF needed (read-only)
+  app.use('/blog', blogRouter);
+
+  // Fundraising public pages — public, read-only (no CSRF for GET)
+  app.use('/fundraising', csrfProtection, fundraisingPublicRouter);
+
+  // Fundraising dashboard — authenticated, role-protected
+  app.use('/admin/fundraising', csrfProtection, fundraisingDashboardRouter);
+
+  // Fundraising API — JSON endpoints
+  app.use('/api/v1', csrfProtection, fundraisingApiRouter);
+
+  // Scholarship & Student Loan API — authenticated, CSRF-protected
+  // Includes: student profile, scholarship applications, loan applications,
+  // installment schedule, payment proof submission (multipart inside router)
+  app.use('/api/v1/scholarship', csrfProtection, scholarshipRouter);
+
+  // Webhooks — server-to-server, HMAC-verified, NOT CSRF-protected
+  // Note: raw body capture is handled inside webhookRouter itself
+  app.use('/webhooks', webhookRouter);
 
   // -------------------------------------------------------------------------
   // CSRF error handler — must be before the general 404/error handlers
